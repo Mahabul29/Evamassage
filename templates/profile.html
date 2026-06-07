@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form id="profileForm">
+                        <div class="mb-3">
+                            <label>Full Name</label>
+                            <input type="text" id="fullName" class="form-control" value="{{ profile.full_name }}">
+                        </div>
+                        <div class="mb-3">
+                            <label>Username</label>
+                            <input type="text" class="form-control" value="{{ profile.username }}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label>Bio</label>
+                            <textarea id="bio" class="form-control" rows="3">{{ profile.bio }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                        <a href="/dashboard" class="btn btn-secondary">Back</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+$('#profileForm').on('submit', function(e) {
+    e.preventDefault();
+    $.post('/api/users/update_profile', {
+        full_name: $('#fullName').val(),
+        bio: $('#bio').val()
+    }, function() {
+        alert('Profile updated!');
+        window.location.href = '/dashboard';
+    });
+});
+</script>
+{% endblock %}
