@@ -6,6 +6,7 @@ from datetime import datetime
 import hashlib
 from pymongo import MongoClient
 from config import *
+from channel import channel_bp
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -31,6 +32,22 @@ try:
 except Exception as e:
     print(f"❌ MongoDB Error: {e}")
     users_collection = None
+
+# ============================================
+# CHANNEL COLLECTIONS INIT
+# ============================================
+def init_channel_collections():
+    if 'channels' not in db.list_collection_names():
+        db.create_collection('channels')
+    if 'channel_members' not in db.list_collection_names():
+        db.create_collection('channel_members')
+    if 'channel_messages' not in db.list_collection_names():
+        db.create_collection('channel_messages')
+    db['channels'].create_index('name')
+    db['channel_members'].create_index([('channel_id', 1), ('user_id', 1)], unique=True)
+
+if users_collection:
+    init_channel_collections()
 
 # ============================================
 # HELPER FUNCTIONS
@@ -298,7 +315,6 @@ def delete_account():
 @app.route('/api/create_test_users', methods=['GET'])
 @login_required
 def create_test_users():
-    """Create test users for testing"""
     test_users = [
         {'username': 'alice', 'password': '1234', 'full_name': 'Alice Wonder', 'bio': 'Love to chat!'},
         {'username': 'bob', 'password': '1234', 'full_name': 'Bob Martin', 'bio': 'Tech enthusiast'},
@@ -459,6 +475,18 @@ def mark_read():
         return jsonify({"success": True})
     except Exception:
         return jsonify({"success": False})
+
+# ============================================
+# REQUEST CONTEXT (for channel.py)
+# ============================================
+@app.before_request
+def before_request():
+    request.db = db
+
+# ============================================
+# REGISTER CHANNEL BLUEPRINT
+# ============================================
+app.register_blueprint(channel_bp)
 
 # ============================================
 # HEALTH CHECK
