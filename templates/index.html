@@ -377,4 +377,236 @@
 <body>
     <div class="chat-container">
         <!-- Sidebar -->
-        <div
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4><i class="fas fa-comment-dots"></i> EvaMassage</h4>
+                        <small>Welcome, {{ user.full_name }}</small>
+                    </div>
+                    <button class="btn btn-sm btn-light" onclick="closeSidebar()" id="closeSidebarBtn" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search people by name...">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+            
+            <div class="chat-list" id="chatList">
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <p>No chats yet</p>
+                    <small>Search for people to start messaging!</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Chat Area -->
+        <div class="main-chat">
+            <div class="chat-header">
+                <div style="display: flex; align-items: center;">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <button class="back-button" onclick="goBack()">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div class="chat-info">
+                        <h5 id="chatUserName">Select a chat</h5>
+                        <small id="chatStatus"><span class="online-dot"></span> Click to start</small>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+            
+            <div class="messages-area" id="messagesArea">
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <p>Select a conversation to start messaging</p>
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <div class="input-group">
+                    <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        let currentChatId = null;
+        let currentChatName = '';
+        let refreshInterval = null;
+        let searchTimeout = null;
+        const currentUserId = {{ user.user_id }};
+        
+        // Sidebar Functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+            if (window.innerWidth <= 768) {
+                document.getElementById('closeSidebarBtn').style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+            }
+        }
+        
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+        
+        function goBack() {
+            currentChatId = null;
+            document.getElementById('chatUserName').innerText = 'Select a chat';
+            document.getElementById('chatStatus').innerHTML = '<span class="online-dot"></span> Click to start';
+            document.getElementById('messagesArea').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <p>Select a conversation to start messaging</p>
+                </div>
+            `;
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        }
+        
+        // Load Chats
+        function loadChats() {
+            $.get('/api/chats', function(chats) {
+                let html = '';
+                if (chats.length === 0) {
+                    html = `
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <p>No chats yet</p>
+                            <small>Search for people to start messaging!</small>
+                        </div>
+                    `;
+                } else {
+                    chats.forEach(chat => {
+                        const isActive = currentChatId === chat.user_id;
+                        html += `
+                            <div class="chat-item ${isActive ? 'active' : ''}" onclick="selectChat(${chat.user_id}, '${escapeHtml(chat.full_name)}')">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="avatar avatar-small">
+                                        ${escapeHtml(chat.full_name.charAt(0).toUpperCase())}
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500;">${escapeHtml(chat.full_name)}</div>
+                                        <div style="font-size: 0.75rem; color: #6c757d;">@${escapeHtml(chat.username)}</div>
+                                        ${chat.last_message ? `<div style="font-size: 0.7rem; color: #999; margin-top: 3px;">${escapeHtml(chat.last_message.substring(0, 35))}${chat.last_message.length > 35 ? '...' : ''}</div>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                $('#chatList').html(html);
+            });
+        }
+        
+        // Select Chat
+        function selectChat(userId, userName) {
+            currentChatId = userId;
+            currentChatName = userName;
+            
+            document.getElementById('chatUserName').innerText = userName;
+            document.getElementById('chatStatus').innerHTML = '<span class="online-dot"></span> Online';
+            
+            loadMessages(userId);
+            
+            if (window.innerWidth <= 768) {
+                closeSidebar();
+            }
+            
+            $('.chat-item').removeClass('active');
+            $(`.chat-item`).each(function() {
+                if ($(this).find('.chat-info h5').text() === userName) {
+                    $(this).addClass('active');
+                }
+            });
+            
+            setTimeout(() => {
+                document.getElementById('messageInput').focus();
+            }, 100);
+        }
+        
+        // Load Messages
+        function loadMessages(userId) {
+            $.get(`/api/messages/${userId}`, function(messages) {
+                let html = '';
+                if (messages.length === 0) {
+                    html = `
+                        <div class="empty-state">
+                            <i class="fas fa-comment-dots"></i>
+                            <p>No messages yet</p>
+                            <small>Send a message to start the conversation!</small>
+                        </div>
+                    `;
+                } else {
+                    messages.forEach(msg => {
+                        const isSent = msg.from_id === currentUserId;
+                        html += `
+                            <div class="message ${isSent ? 'sent' : 'received'}">
+                                <div class="message-content">
+                                    ${escapeHtml(msg.message)}
+                                    <div class="message-time">
+                                        ${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        ${isSent && msg.is_read ? ' ✓✓' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                $('#messagesArea').html(html);
+                scrollToBottom();
+                $.post('/api/messages/mark_read', {user_id: userId});
+            });
+        }
+        
+        // Send Message
+        function sendMessage() {
+            const message = $('#messageInput').val().trim();
+            if (message && currentChatId) {
+                $.post('/api/messages/send', {
+                    to_id: currentChatId,
+                    message: message
+                }, function(response) {
+                    if (response.success) {
+                        $('#messageInput').val('');
+                        loadMessages(currentChatId);
+                        loadChats();
+                    }
+                });
+            }
+        }
+        
+        // Search Users
+        $('#searchInput').on('input', function() {
+            clearTimeout(searchTimeout);
+            const query = $(this).val().trim();
+            
+            if (query.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    $.get(`/api/users/search?q=${encodeURIComponent(query)}`, function(users) {
+                        let html = '';
+                        if (users.length === 0) {
+                            html = '<div class="p-3 text-center text-muted">No users found</div>';
+                        } else {
+                            users.forEach(user => {
+                                html += `
+                                    <div class="search-result-item" onclick="startNewChat(${user.user_id}, '${escapeHtml(user.full_name)}')">
+                                        <div style="display: flex; align-items: center; gap: 12px;">
+                                            <div class="avatar avatar-small">
+                                                ${escapeHtml(user.full_name.charAt(0).toUpperCase())}
+                                            </div>
+                               
