@@ -20,7 +20,7 @@ try:
     messages_collection = db['messages']
     chats_collection = db['chats']
     
-    # Create indexes for faster search
+    # Create indexes
     users_collection.create_index('username', unique=True)
     users_collection.create_index('user_id', unique=True)
     messages_collection.create_index([('from_id', 1), ('to_id', 1)])
@@ -36,11 +36,9 @@ except Exception as e:
 # HELPER FUNCTIONS
 # ============================================
 def hash_password(password):
-    """Hash password using SHA-256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 def login_required(f):
-    """Decorator to require login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -49,7 +47,6 @@ def login_required(f):
     return decorated_function
 
 def get_user_profile(user_id):
-    """Get user profile by ID"""
     if users_collection is None:
         return None
     user = users_collection.find_one({'user_id': user_id})
@@ -84,6 +81,11 @@ def profile_page():
     profile = get_user_profile(session['user_id'])
     return render_template('profile.html', profile=profile)
 
+@app.route('/settings')
+@login_required
+def settings_page():
+    return render_template('settings.html', user=session)
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -100,7 +102,6 @@ def register():
         password = data.get('password', '')
         full_name = data.get('full_name', '').strip()
         
-        # Validation
         if not username or len(username) < 3:
             return jsonify({"success": False, "error": "Username must be at least 3 characters"}), 400
         
@@ -113,11 +114,9 @@ def register():
         if users_collection is None:
             return jsonify({"success": False, "error": "Database not connected"}), 500
         
-        # Check if username exists
         if users_collection.find_one({'username': username}):
             return jsonify({"success": False, "error": "Username already exists"}), 400
         
-        # Create new user
         user_id = secrets.randbelow(1000000000)
         user = {
             'user_id': user_id,
@@ -159,7 +158,6 @@ def login():
             session['username'] = user['username']
             session['full_name'] = user.get('full_name', user['username'])
             
-            # Update last login
             users_collection.update_one(
                 {'user_id': user['user_id']},
                 {'$set': {'last_login': datetime.now()}}
@@ -192,7 +190,6 @@ def search_users():
     if users_collection is None:
         return jsonify([])
     
-    # Search users
     users = users_collection.find({
         '$and': [
             {'user_id': {'$ne': session['user_id']}},
@@ -246,6 +243,95 @@ def update_profile():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/change_password', methods=['POST'])
+@login_required
+def change_password():
+    try:
+        data = request.json
+        current_password = data.get('current')
+        new_password = data.get('new')
+        
+        if not new_password or len(new_password) < 4:
+            return jsonify({"success": False, "error": "Password must be at least 4 characters"}), 400
+        
+        hashed_current = hash_password(current_password)
+        
+        user = users_collection.find_one({
+            'user_id': session['user_id'],
+            'password': hashed_current
+        })
+        
+        if not user:
+            return jsonify({"success": False, "error": "Current password is incorrect"}), 400
+        
+        users_collection.update_one(
+            {'user_id': session['user_id']},
+            {'$set': {'password': hash_password(new_password)}}
+        )
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    try:
+        users_collection.delete_one({'user_id': session['user_id']})
+        messages_collection.delete_many({
+            '$or': [
+                {'from_id': session['user_id']},
+                {'to_id': session['user_id']}
+            ]
+        })
+        chats_collection.delete_many({
+            '$or': [
+                {'user1_id': session['user_id']},
+                {'user2_id': session['user_id']}
+            ]
+        })
+        session.clear()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/create_test_users', methods=['GET'])
+@login_required
+def create_test_users():
+    """Create test users for testing"""
+    test_users = [
+        {'username': 'alice', 'password': '1234', 'full_name': 'Alice Wonder', 'bio': 'Love to chat!'},
+        {'username': 'bob', 'password': '1234', 'full_name': 'Bob Martin', 'bio': 'Tech enthusiast'},
+        {'username': 'charlie', 'password': '1234', 'full_name': 'Charlie Brown', 'bio': 'Music lover'},
+        {'username': 'diana', 'password': '1234', 'full_name': 'Diana Prince', 'bio': 'Adventurer'},
+        {'username': 'eva', 'password': '1234', 'full_name': 'Eva Adams', 'bio': 'Artist'},
+        {'username': 'frank', 'password': '1234', 'full_name': 'Frank Ocean', 'bio': 'Singer'},
+        {'username': 'grace', 'password': '1234', 'full_name': 'Grace Hopper', 'bio': 'Coder'},
+        {'username': 'henry', 'password': '1234', 'full_name': 'Henry Cavill', 'bio': 'Actor'},
+    ]
+    
+    created = []
+    for user in test_users:
+        try:
+            if not users_collection.find_one({'username': user['username']}):
+                user_id = secrets.randbelow(1000000000)
+                users_collection.insert_one({
+                    'user_id': user_id,
+                    'username': user['username'],
+                    'password': hash_password(user['password']),
+                    'full_name': user['full_name'],
+                    'bio': user['bio'],
+                    'profile_pic': '',
+                    'is_active': True,
+                    'created_at': datetime.now(),
+                    'last_login': None
+                })
+                created.append(user['username'])
+        except:
+            pass
+    
+    return jsonify({"created": created, "count": len(created), "message": f"Created {len(created)} test users"})
+
 # ============================================
 # MESSAGES API
 # ============================================
@@ -263,7 +349,6 @@ def send_message():
         if users_collection is None:
             return jsonify({"error": "Database error"}), 500
         
-        # Save message
         message_doc = {
             'from_id': session['user_id'],
             'to_id': to_id,
@@ -273,7 +358,6 @@ def send_message():
         }
         messages_collection.insert_one(message_doc)
         
-        # Update or create chat
         user1, user2 = sorted([session['user_id'], to_id])
         chats_collection.update_one(
             {'user1_id': user1, 'user2_id': user2},
@@ -315,7 +399,7 @@ def get_messages(user_id):
         
         return jsonify(result)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify([])
 
 @app.route('/api/chats')
 @login_required
