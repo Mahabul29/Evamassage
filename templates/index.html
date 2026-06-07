@@ -128,4 +128,92 @@
 </div>
 
 <div id="installPopup">
-    <button class
+    <button class="close-popup" onclick="closeInstallPopup()">&times;</button>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:55px; height:55px; background:linear-gradient(135deg,#667eea,#764ba2); border-radius:14px; display:flex; align-items:center; justify-content:center; color:white; font-size:28px;">💬</div>
+        <div style="flex:1;">
+            <h4 style="margin:0; font-size:16px; font-weight:600;">EvaMassage</h4>
+            <p style="margin:5px 0 0; font-size:12px; color:#666;">Install app for better experience</p>
+        </div>
+        <button onclick="installApp()" style="background:#00a884; border:none; color:white; padding:10px 20px; border-radius:25px; font-weight:500; cursor:pointer;">Install</button>
+    </div>
+</div>
+
+<div class="modal fade" id="channelModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Create Channel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" id="channelName" class="form-control mb-2" placeholder="Channel name"><textarea id="channelDesc" class="form-control" placeholder="Description (optional)"></textarea></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="createChannel()">Create</button></div></div></div></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentChatId=null,currentChatType='user',msgTimer=null;
+    const ME={{ user.user_id }};
+    let deferredPrompt;
+    
+    function showInstallPopup() {
+        if(!localStorage.getItem('popupClosed')){
+            document.getElementById('installPopup').style.display = 'block';
+        }
+    }
+    
+    function closeInstallPopup() {
+        document.getElementById('installPopup').style.display = 'none';
+        localStorage.setItem('popupClosed', 'true');
+    }
+    
+    function installApp() {
+        if(deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => {
+                deferredPrompt = null;
+                closeInstallPopup();
+            });
+        } else {
+            alert('To install: Tap Share button → Add to Home Screen');
+            closeInstallPopup();
+        }
+    }
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        showInstallPopup();
+    });
+    
+    function switchTab(tab){
+        document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+        document.getElementById(tab+'Content').classList.add('active');
+        event.target.closest('.nav-item').classList.add('active');
+        if(tab=='chats')loadChats();
+        if(tab=='channels')loadChannels();
+    }
+    
+    function loadChats(){$.get('/api/chats',function(data){let html='';if(!data||data.length===0)html='<div class="empty-list"><i class="fas fa-comments fa-3x"></i><p>No chats yet</p></div>';else data.forEach(c=>{html+=`<div class="chat-row" onclick="selectChat(${c.user_id},'${c.full_name}','user')"><div class="avatar">${c.full_name.charAt(0)}</div><div><div>${c.full_name}</div><small>${c.last_message?c.last_message.substring(0,30):'Tap to chat'}</small></div></div>`;});$('#chatList').html(html);});}
+    
+    function loadChannels(){$.get('/api/channels',function(data){let html='';if(!data||data.length===0)html='<div class="empty-list"><i class="fas fa-hashtag fa-3x"></i><p>No channels yet. Create one!</p></div>';else data.forEach(c=>{html+=`<div class="channel-item" onclick="selectChat('${c.id}','${c.name}','channel')"><div><i class="fas fa-hashtag"></i> ${c.name}</div><small>${c.member_count} members</small></div>`;});$('#channelsList').html(html);});}
+    
+    function selectChat(id,name,type){currentChatId=id;currentChatType=type;document.getElementById('convName').innerHTML=name;if(type=='user'){loadMessages();if(msgTimer)clearInterval(msgTimer);msgTimer=setInterval(loadMessages,3000);}else{loadChannelMessages();if(msgTimer)clearInterval(msgTimer);msgTimer=setInterval(loadChannelMessages,3000);}if(window.innerWidth<=768){document.getElementById('panelLeft').classList.add('slide-out');document.getElementById('panelRight').classList.add('slide-in');document.querySelector('.back-btn').style.display='block';}}
+    
+    function loadMessages(){if(!currentChatId||currentChatType!='user')return;$.get('/api/messages/'+currentChatId,function(msgs){let html='';if(!msgs||msgs.length===0)html='<div class="empty-list"><p>No messages yet</p></div>';else msgs.forEach(m=>{const sent=m.from_id===ME;html+=`<div class="bubble-wrap ${sent?'sent':'recv'}"><div class="bubble ${sent?'sent':'recv'}">${escapeHtml(m.message)}<div class="bubble-time">${formatTime(m.created_at)}</div></div></div>`;});$('#messagesArea').html(html);$('#messagesArea').scrollTop($('#messagesArea')[0].scrollHeight);});}
+    
+    function loadChannelMessages(){if(!currentChatId||currentChatType!='channel')return;$.get('/api/channels/'+currentChatId+'/messages',function(msgs){let html='';if(!msgs||msgs.length===0)html='<div class="empty-list"><p>No messages in channel</p></div>';else msgs.forEach(m=>{const sent=m.from_id===ME;html+=`<div class="bubble-wrap ${sent?'sent':'recv'}"><div class="bubble ${sent?'sent':'recv'}"><b>${m.from_name}</b><br>${escapeHtml(m.message)}<div class="bubble-time">${formatTime(m.created_at)}</div></div></div>`;});$('#messagesArea').html(html);$('#messagesArea').scrollTop($('#messagesArea')[0].scrollHeight);});}
+    
+    function sendMessage(){let msg=$('#messageInput').val().trim();if(!msg||!currentChatId)return;$('#messageInput').val('');if(currentChatType=='user'){$.post('/api/messages/send',JSON.stringify({to_id:currentChatId,message:msg}),function(r){if(r.success){loadMessages();loadChats();}}).fail(()=>{$('#messageInput').val(msg);});}else{$.post('/api/channels/'+currentChatId+'/send',JSON.stringify({message:msg}),function(r){if(r.success)loadChannelMessages();else alert(r.error);});}}
+    
+    function createChannel(){let name=$('#channelName').val().trim();let desc=$('#channelDesc').val().trim();if(!name){alert('Channel name required');return;}$.post('/api/channels',JSON.stringify({name:name,description:desc}),function(r){if(r.success){bootstrap.Modal.getInstance(document.getElementById('channelModal')).hide();$('#channelName,#channelDesc').val('');loadChannels();switchTab('channels');}else alert(r.error);});}
+    
+    function showCreateChannelModal(){new bootstrap.Modal(document.getElementById('channelModal')).show();}
+    
+    function goBack(){document.getElementById('panelLeft').classList.remove('slide-out');document.getElementById('panelRight').classList.remove('slide-in');if(msgTimer){clearInterval(msgTimer);msgTimer=null;}currentChatId=null;}
+    
+    function logout(){if(confirm('Logout?'))window.location.href='/logout';}
+    
+    function escapeHtml(t){if(!t)return'';return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    
+    function formatTime(s){try{let d=new Date(s);return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}catch(e){return''}}
+    
+    let searchTimer;$('#searchInput').on('input',function(){let q=$(this).val().trim();clearTimeout(searchTimer);if(q.length<2){$('#searchDropdown').hide();return;}searchTimer=setTimeout(()=>{$.get('/api/users/search',{q:q},function(users){let html='';if(!users||users.length===0)html='<div class="p-3 text-center">No users found</div>';else users.forEach(u=>{html+=`<div class="chat-row" onclick="selectChat(${u.user_id},'${u.full_name}','user');$('#searchDropdown').hide();$('#searchInput').val('')"><div class="avatar-sm" style="width:38px;height:38px;">${u.full_name.charAt(0)}</div><div><div>${u.full_name}</div><small>@${u.username}</small></div></div>`;});$('#searchDropdown').html(html).show();});},300);});$(document).click(function(e){if(!$(e.target).closest('.search-wrap').length)$('#searchDropdown').hide();});
+    
+    $(function(){loadChats();setInterval(loadChats,10000);setTimeout(showInstallPopup,3000);});
+</script>
+</body>
+</html>
