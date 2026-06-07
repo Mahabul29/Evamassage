@@ -39,7 +39,7 @@ def index():
 def dashboard():
     if 'user_id' not in session:
         return redirect('/')
-    return render_template('index/main.html', user=session)
+    return render_template('index.html', user=session)
 
 @app.route('/profile')
 def profile():
@@ -61,3 +61,4 @@ def logout():
 if __name__ == '__main__':
     print(f"🚀 Server running on port {PORT}")
     app.run(host='0.0.0.0', port=PORT, debug=False)
+    
