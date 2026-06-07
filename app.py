@@ -4,13 +4,15 @@ import secrets
 from datetime import datetime
 import hashlib
 from pymongo import MongoClient
-from config import *
-from channel import channel_bp
+import os
 
 app = Flask(__name__)
-app.secret_key = SECRET_KEY
+app.secret_key = 'your-secret-key-change-this-12345'
 
 # MongoDB Connection
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
+MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'evamassage')
+
 try:
     client = MongoClient(MONGO_URI)
     db = client[MONGO_DB_NAME]
@@ -18,27 +20,23 @@ try:
     messages_collection = db['messages']
     chats_collection = db['chats']
     
+    # Create indexes
     users_collection.create_index('username', unique=True)
     users_collection.create_index('user_id', unique=True)
     
-    print(f"MongoDB Connected")
+    # Create channel collections
+    if 'channels' not in db.list_collection_names():
+        db.create_collection('channels')
+    if 'channel_members' not in db.list_collection_names():
+        db.create_collection('channel_members')
+    if 'channel_messages' not in db.list_collection_names():
+        db.create_collection('channel_messages')
+    
+    print("✅ MongoDB Connected")
 except Exception as e:
-    print(f"MongoDB Error: {e}")
-    users_collection = None
+    print(f"❌ MongoDB Error: {e}")
     db = None
-
-# Channel Collections
-def init_channel_collections():
-    if db is not None:
-        if 'channels' not in db.list_collection_names():
-            db.create_collection('channels')
-        if 'channel_members' not in db.list_collection_names():
-            db.create_collection('channel_members')
-        if 'channel_messages' not in db.list_collection_names():
-            db.create_collection('channel_messages')
-
-if users_collection is not None:
-    init_channel_collections()
+    users_collection = None
 
 # Helper Functions
 def hash_password(password):
@@ -66,7 +64,7 @@ def get_user_profile(user_id):
         }
     return None
 
-# Page Routes
+# ========== PAGE ROUTES ==========
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -94,7 +92,7 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# Authentication API
+# ========== AUTH API ==========
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
@@ -149,21 +147,25 @@ def login():
             session['username'] = user['username']
             session['full_name'] = user.get('full_name', user['username'])
             
-            return jsonify({"success": True, "user": {"user_id": user['user_id'], "username": user['username'], "full_name": user.get('full_name', user['username'])}})
+            return jsonify({
+                "success": True, 
+                "user": {
+                    "user_id": user['user_id'], 
+                    "username": user['username'], 
+                    "full_name": user.get('full_name', user['username'])
+                }
+            })
         
         return jsonify({"success": False, "error": "Invalid username or password"}), 401
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# User API
+# ========== USER API ==========
 @app.route('/api/users/search')
 @login_required
 def search_users():
     query = request.args.get('q', '').strip().lower()
-    if len(query) < 2:
-        return jsonify([])
-    
-    if users_collection is None:
+    if len(query) < 2 or users_collection is None:
         return jsonify([])
     
     users = users_collection.find({
@@ -185,28 +187,7 @@ def get_profile(user_id):
         return jsonify(profile)
     return jsonify({"error": "User not found"}), 404
 
-@app.route('/api/users/update_profile', methods=['POST'])
-@login_required
-def update_profile():
-    try:
-        data = request.json
-        update_data = {}
-        
-        if data.get('full_name'):
-            update_data['full_name'] = data.get('full_name')
-            session['full_name'] = data.get('full_name')
-        
-        if data.get('bio'):
-            update_data['bio'] = data.get('bio')
-        
-        if update_data and users_collection is not None:
-            users_collection.update_one({'user_id': session['user_id']}, {'$set': update_data})
-        
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-# Messages API
+# ========== MESSAGES API ==========
 @app.route('/api/messages/send', methods=['POST'])
 @login_required
 def send_message():
@@ -217,6 +198,9 @@ def send_message():
         
         if not message:
             return jsonify({"error": "Message cannot be empty"}), 400
+        
+        if db is None:
+            return jsonify({"error": "Database error"}), 500
         
         message_doc = {
             'from_id': session['user_id'],
@@ -242,7 +226,7 @@ def send_message():
 @login_required
 def get_messages(user_id):
     try:
-        if users_collection is None:
+        if db is None:
             return jsonify([])
         
         messages = messages_collection.find({
@@ -261,7 +245,7 @@ def get_messages(user_id):
 @login_required
 def get_chats():
     try:
-        if users_collection is None:
+        if db is None:
             return jsonify([])
         
         chats = chats_collection.find({
@@ -280,19 +264,136 @@ def get_chats():
     except Exception:
         return jsonify([])
 
-# Request Context for channel.py
-@app.before_request
-def before_request():
-    request.db = db
+# ========== CHANNEL API ==========
+@app.route('/api/channels', methods=['GET'])
+@login_required
+def get_channels():
+    if db is None:
+        return jsonify([])
+    
+    members = db['channel_members'].find({'user_id': session['user_id']})
+    result = []
+    
+    for member in members:
+        channel = db['channels'].find_one({'_id': member['channel_id']})
+        if channel:
+            member_count = db['channel_members'].count_documents({'channel_id': channel['_id']})
+            result.append({
+                'id': str(channel['_id']),
+                'name': channel['name'],
+                'description': channel.get('description', ''),
+                'member_count': member_count,
+                'role': member.get('role', 'member')
+            })
+    
+    return jsonify(result)
 
-# Register Channel Blueprint
-app.register_blueprint(channel_bp)
+@app.route('/api/channels', methods=['POST'])
+@login_required
+def create_channel():
+    if db is None:
+        return jsonify({"error": "Database not connected"}), 500
+    
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    
+    if not name or len(name) < 2:
+        return jsonify({"error": "Channel name must be at least 2 characters"}), 400
+    
+    existing = db['channels'].find_one({'name': name})
+    if existing:
+        return jsonify({"error": "Channel name already exists"}), 400
+    
+    channel = {
+        'name': name,
+        'description': description,
+        'created_by': session['user_id'],
+        'created_at': datetime.now(),
+        'is_active': True
+    }
+    result = db['channels'].insert_one(channel)
+    channel_id = result.inserted_id
+    
+    db['channel_members'].insert_one({
+        'channel_id': channel_id,
+        'user_id': session['user_id'],
+        'role': 'admin',
+        'joined_at': datetime.now()
+    })
+    
+    return jsonify({"success": True, "id": str(channel_id), "name": name})
 
-# Health Check
+@app.route('/api/channels/<channel_id>/send', methods=['POST'])
+@login_required
+def send_channel_message(channel_id):
+    if db is None:
+        return jsonify({"error": "Database error"}), 500
+    
+    from bson.objectid import ObjectId
+    try:
+        oid = ObjectId(channel_id)
+    except:
+        return jsonify({"error": "Invalid channel ID"}), 400
+    
+    is_member = db['channel_members'].find_one({'channel_id': oid, 'user_id': session['user_id']})
+    if not is_member:
+        return jsonify({"error": "You are not a member"}), 403
+    
+    data = request.get_json()
+    message = data.get('message', '').strip()
+    
+    if not message:
+        return jsonify({"error": "Message cannot be empty"}), 400
+    
+    db['channel_messages'].insert_one({
+        'channel_id': oid,
+        'from_id': session['user_id'],
+        'message': message,
+        'created_at': datetime.now()
+    })
+    
+    return jsonify({"success": True})
+
+@app.route('/api/channels/<channel_id>/messages', methods=['GET'])
+@login_required
+def get_channel_messages(channel_id):
+    if db is None:
+        return jsonify([])
+    
+    from bson.objectid import ObjectId
+    try:
+        oid = ObjectId(channel_id)
+    except:
+        return jsonify([])
+    
+    is_member = db['channel_members'].find_one({'channel_id': oid, 'user_id': session['user_id']})
+    if not is_member:
+        return jsonify([])
+    
+    messages = db['channel_messages'].find({'channel_id': oid}).sort('created_at', 1).limit(100)
+    result = []
+    
+    for msg in messages:
+        user = db['users'].find_one({'user_id': msg['from_id']})
+        sender_name = user.get('full_name', user.get('username', 'Unknown')) if user else 'Unknown'
+        
+        result.append({
+            'id': str(msg['_id']),
+            'from_id': msg['from_id'],
+            'from_name': sender_name,
+            'message': msg['message'],
+            'created_at': msg['created_at'].isoformat() if hasattr(msg['created_at'], 'isoformat') else str(msg['created_at'])
+        })
+    
+    return jsonify(result)
+
+# ========== HEALTH CHECK ==========
 @app.route('/health')
 def health_check():
     return jsonify({"status": "healthy", "timestamp": datetime.now()})
 
 if __name__ == '__main__':
-    print(f"Starting EvaMassage on port {PORT}")
-    app.run(host='0.0.0.0', port=PORT, debug=DEBUG)
+    port = int(os.environ.get('PORT', 8080))
+    print(f"🚀 EvaMassage starting on port {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
