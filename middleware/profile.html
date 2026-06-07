@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - EvaMassage{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-user-circle"></i> My Profile</h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="profile-avatar mx-auto" id="avatarPreview">
+                        <img src="{{ profile.profile_pic or '/static/images/default-avatar.png' }}" 
+                             alt="Avatar" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="document.getElementById('avatarInput').click()">
+                        <i class="fas fa-camera"></i> Change Avatar
+                    </button>
+                    <input type="file" id="avatarInput" style="display: none" accept="image/*">
+                </div>
+                
+                <form id="profileForm">
+                    <div class="mb-3">
+                        <label><i class="fas fa-user"></i> Full Name</label>
+                        <input type="text" id="fullName" class="form-control" value="{{ profile.full_name or '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label><i class="fas fa-at"></i> Username</label>
+                        <input type="text" id="username" class="form-control" value="{{ profile.username }}" readonly disabled>
+                        <small class="text-muted">Username cannot be changed</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label><i class="fas fa-info-circle"></i> Bio</label>
+                        <textarea id="bio" class="form-control" rows="3" placeholder="Tell us about yourself...">{{ profile.bio or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" id="email" class="form-control" value="{{ profile.email or '' }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label><i class="fas fa-calendar"></i> Joined</label>
+                        <input type="text" class="form-control" value="{{ profile.joined }}" readonly disabled>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Profile
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="showDeleteModal()">
+                            <i class="fas fa-trash"></i> Delete Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Change Password Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-key"></i> Change Password</h5>
+            </div>
+            <div class="card-body">
+                <form id="passwordForm">
+                    <div class="mb-3">
+                        <label>Current Password</label>
+                        <input type="password" id="currentPassword" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>New Password</label>
+                        <input type="password" id="newPassword" class="form-control" required>
+                        <small class="text-muted">Minimum 6 characters with uppercase, lowercase and number</small>
+                    </div>
+                    <div class="mb-3">
+                        <label>Confirm New Password</label>
+                        <input type="password" id="confirmPassword" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Delete Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Warning!</p>
+                <p>This action cannot be undone. All your messages and data will be permanently deleted.</p>
+                <label>Type "DELETE" to confirm:</label>
+                <input type="text" id="deleteConfirm" class="form-control" placeholder="DELETE">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$('#profileForm').on('submit', function(e) {
+    e.preventDefault();
+    $.post('/api/users/update_profile', {
+        full_name: $('#fullName').val(),
+        bio: $('#bio').val(),
+        email: $('#email').val()
+    }, function(response) {
+        if (response.success) {
+            alert('Profile updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + response.error);
+        }
+    });
+});
+
+$('#passwordForm').on('submit', function(e) {
+    e.preventDefault();
+    if ($('#newPassword').val() !== $('#confirmPassword').val()) {
+        alert('New passwords do not match!');
+        return;
+    }
+    
+    $.post('/api/users/change_password', {
+        current: $('#currentPassword').val(),
+        new: $('#newPassword').val()
+    }, function(response) {
+        if (response.success) {
+            alert('Password changed successfully!');
+            $('#passwordForm')[0].reset();
+        } else {
+            alert('Error: ' + response.error);
+        }
+    });
+});
+
+$('#avatarInput').on('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('avatar', file);
+        
+        $.ajax({
+            url: '/api/users/upload_avatar',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Upload failed: ' + response.error);
+                }
+            }
+        });
+    }
+});
+
+function showDeleteModal() {
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function deleteAccount() {
+    if ($('#deleteConfirm').val() === 'DELETE') {
+        if (confirm('Are you absolutely sure? This cannot be undone!')) {
+            $.post('/api/users/delete_account', function(response) {
+                if (response.success) {
+                    window.location.href = '/logout';
+                }
+            });
+        }
+    } else {
+        alert('Please type DELETE to confirm');
+    }
+}
+</script>
+{% endblock %}
