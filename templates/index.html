@@ -10,81 +10,136 @@
         *{margin:0;padding:0;box-sizing:border-box;}
         body{font-family:'Segoe UI',sans-serif;height:100vh;overflow:hidden;background:#f0f2f5;}
         
-        .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;padding:10px;border-top:1px solid #ddd;z-index:100;}
-        .nav-item{flex:1;text-align:center;background:none;border:none;padding:8px;color:#666;cursor:pointer;}
-        .nav-item.active{color:#00a884;}
-        .nav-item i{font-size:22px;display:block;margin-bottom:4px;}
+        /* Hide EvaMassage text - remove if you want it back */
+        .hide-title{display:none;}
         
-        .panel-left{width:350px;background:#fff;height:100vh;overflow-y:auto;border-right:1px solid #ddd;padding-bottom:70px;}
-        .panel-right{flex:1;background:#efeae2;height:100vh;display:flex;flex-direction:column;}
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;padding:8px;border-top:1px solid #ddd;z-index:100;}
+        .nav-btn{flex:1;text-align:center;background:none;border:none;padding:8px;color:#666;cursor:pointer;}
+        .nav-btn.active{color:#00a884;}
+        .nav-btn i{font-size:22px;display:block;margin-bottom:4px;}
         
-        .topbar{background:#075e54;color:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center;}
-        .topbar h5{margin:0;}
+        .sidebar{width:350px;background:#fff;height:100%;overflow-y:auto;border-right:1px solid #ddd;padding-bottom:70px;}
+        .chat-area{flex:1;background:#efeae2;display:flex;flex-direction:column;height:100vh;}
         
-        .search{padding:10px;background:#fff;border-bottom:1px solid #eee;}
-        .search input{width:100%;padding:10px;border:1px solid #ddd;border-radius:25px;outline:none;}
+        .chat-header{background:#075e54;color:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center;}
+        .messages-container{flex:1;overflow-y:auto;padding:15px;padding-bottom:80px;}
+        
+        /* FIXED - Input area always visible */
+        .input-area{display:flex;padding:12px;background:#fff;gap:10px;border-top:1px solid #ddd;position:sticky;bottom:0;width:100%;}
+        .input-area input{flex:1;padding:12px;border:1px solid #ddd;border-radius:25px;outline:none;font-size:14px;}
+        .input-area button{background:#00a884;border:none;color:#fff;padding:12px 20px;border-radius:25px;cursor:pointer;}
+        .input-area button:disabled{opacity:0.5;cursor:not-allowed;}
+        
+        .search-box{padding:10px;background:#fff;border-bottom:1px solid #eee;}
+        .search-box input{width:100%;padding:10px;border:1px solid #ddd;border-radius:25px;outline:none;}
         
         .chat-item{display:flex;padding:12px 15px;border-bottom:1px solid #eee;cursor:pointer;align-items:center;gap:12px;}
         .chat-item:hover{background:#f5f5f5;}
         .avatar{width:50px;height:50px;border-radius:50%;background:#00a884;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px;}
         
-        .messages-area{flex:1;overflow-y:auto;padding:15px;padding-bottom:80px;}
-        .msg{max-width:70%;margin-bottom:10px;padding:8px 12px;border-radius:18px;word-break:break-word;}
-        .msg.sent{background:#dcf8c5;margin-left:auto;text-align:right;}
-        .msg.recv{background:#fff;}
-        .msg-name{font-size:12px;color:#075e54;font-weight:bold;margin-bottom:4px;}
-        .msg-time{font-size:10px;color:#999;margin-top:4px;}
-        
-        .input-area{display:flex;padding:10px;background:#fff;gap:10px;position:sticky;bottom:0;border-top:1px solid #eee;}
-        .input-area input{flex:1;padding:12px;border:1px solid #ddd;border-radius:25px;outline:none;}
-        .input-area button{background:#00a884;border:none;color:#fff;padding:12px 20px;border-radius:25px;cursor:pointer;}
-        
-        .tab-content{display:none;height:100%;}
-        .tab-content.active{display:block;}
-        .empty{padding:50px;text-align:center;color:#999;}
         .channel-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
         .channel-item:hover{background:#f5f5f5;}
         
+        .menu-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer;}
+        .menu-item i{width:30px;}
+        
+        .msg{max-width:70%;margin-bottom:10px;padding:8px 12px;border-radius:18px;word-break:break-word;}
+        .msg.sent{background:#dcf8c5;margin-left:auto;text-align:right;}
+        .msg.recv{background:#fff;}
+        .msg-name{font-size:11px;color:#075e54;font-weight:bold;margin-bottom:3px;}
+        .msg-time{font-size:10px;color:#999;margin-top:3px;}
+        
+        .empty-state{padding:50px;text-align:center;color:#999;}
+        .empty-state i{font-size:48px;margin-bottom:15px;opacity:0.5;}
+        
+        .tab-content{display:none;height:100%;}
+        .tab-content.active{display:block;}
+        
+        .back-btn{background:none;border:none;color:#fff;margin-right:10px;display:none;}
+        
         @media(max-width:768px){
-            .panel-left{position:fixed;left:0;top:0;z-index:10;transform:translateX(0);transition:transform 0.3s;}
-            .panel-left.hide{transform:translateX(-100%);}
-            .panel-right{width:100%;}
+            .sidebar{position:fixed;left:0;top:0;z-index:10;transition:transform 0.3s;width:100%;height:100vh;background:#fff;}
+            .sidebar.hide{transform:translateX(-100%);}
+            .chat-area{width:100%;}
+            .back-btn{display:block !important;}
         }
+        
+        /* Modal styles */
+        .modal-content{border-radius:15px;}
+        .modal-header{border-radius:15px 15px 0 0;}
+        .avatar-large{width:80px;height:80px;border-radius:50%;background:#00a884;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 15px;color:#fff;}
+        .bio-box{padding:10px;background:#f5f5f5;border-radius:10px;}
+        
+        /* Install popup */
+        .install-popup{position:fixed;bottom:80px;left:10px;right:10px;background:white;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.2);z-index:1000;padding:16px;display:none;}
+        .install-content{display:flex;align-items:center;gap:12px;position:relative;}
+        .install-icon{width:50px;height:50px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;}
+        .install-text{flex:1;}
+        .install-text h4{margin:0;font-size:16px;}
+        .install-text p{margin:0;font-size:12px;color:#666;}
+        .install-btn{background:#00a884;border:none;color:#fff;padding:8px 16px;border-radius:25px;cursor:pointer;}
+        .close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:#999;position:absolute;top:-5px;right:-5px;}
     </style>
 </head>
 <body>
 <div style="display:flex;height:100vh;">
-    <div class="panel-left" id="panelLeft">
-        <div class="topbar"><h5><i class="fas fa-comment-dots"></i> EvaMassage</h5><div><a href="/profile" class="text-white me-2"><i class="fas fa-user"></i></a><a href="/settings" class="text-white"><i class="fas fa-cog"></i></a></div></div>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <!-- Header without EvaMassage text -->
+        <div style="background:#075e54; color:#fff; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <i class="fas fa-comment-dots"></i>
+                <strong class="hide-title">EvaMassage</strong>
+                <small class="d-block" style="font-size:12px;">{{ user.full_name }}</small>
+            </div>
+            <div>
+                <a href="/profile" class="text-white me-3"><i class="fas fa-user-circle fa-lg"></i></a>
+                <a href="/settings" class="text-white"><i class="fas fa-cog fa-lg"></i></a>
+            </div>
+        </div>
         
         <div id="chatsTab" class="tab-content active">
-            <div class="search"><input type="text" id="searchInput" placeholder="Search users..."></div>
-            <div id="chatList"><div class="empty"><i class="fas fa-comments fa-3x mb-2 d-block"></i>No chats yet</div></div>
+            <div class="search-box"><input type="text" id="searchInput" placeholder="Search users..."></div>
+            <div id="chatList"><div class="empty-state"><i class="fas fa-comments"></i><br>No chats yet<br><small>Search for people above</small></div></div>
         </div>
         
         <div id="channelsTab" class="tab-content">
-            <div class="search"><button class="btn btn-success w-100" onclick="showChannelModal()"><i class="fas fa-plus"></i> Create Channel</button></div>
-            <div id="channelsList"><div class="empty"><i class="fas fa-hashtag fa-3x mb-2 d-block"></i>No channels</div></div>
+            <div class="search-box"><button class="btn btn-success w-100" onclick="showChannelModal()"><i class="fas fa-plus"></i> Create Channel</button></div>
+            <div id="channelsList"><div class="empty-state"><i class="fas fa-hashtag"></i><br>No channels yet</div></div>
         </div>
         
         <div id="settingsTab" class="tab-content">
-            <div class="chat-item" onclick="location.href='/profile'"><div class="avatar"><i class="fas fa-user"></i></div><div><b>Edit Profile</b><br><small>Update your info</small></div></div>
-            <div class="chat-item" onclick="location.href='/settings'"><div class="avatar"><i class="fas fa-cog"></i></div><div><b>Settings</b><br><small>App preferences</small></div></div>
-            <div class="chat-item" onclick="logout()"><div class="avatar" style="background:#dc3545;"><i class="fas fa-sign-out-alt"></i></div><div><b style="color:#dc3545;">Logout</b><br><small>Sign out</small></div></div>
+            <div class="menu-item" onclick="location.href='/profile'"><i class="fas fa-user-circle"></i> Edit Profile</div>
+            <div class="menu-item" onclick="location.href='/settings'"><i class="fas fa-cog"></i> App Settings</div>
+            <div class="menu-item text-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
         </div>
     </div>
     
-    <div class="panel-right" id="panelRight">
-        <div class="topbar"><span id="chatTitle"><i class="fas fa-comment"></i> Select a chat</span><i class="fas fa-info-circle" onclick="openProfile()" style="cursor:pointer;"></i></div>
-        <div class="messages-area" id="messagesArea"><div class="empty"><i class="fas fa-comment-dots fa-3x mb-2 d-block"></i>Select a conversation to start messaging</div></div>
-        <div class="input-area"><input type="text" id="msgInput" placeholder="Type a message..." onkeypress="if(event.key=='Enter')sendMsg()"><button onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button></div>
+    <!-- Chat Area -->
+    <div class="chat-area" id="chatArea">
+        <div class="chat-header">
+            <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
+            <span id="chatTitle">Select a chat</span>
+            <i class="fas fa-info-circle" onclick="openProfile()" style="cursor:pointer;"></i>
+        </div>
+        
+        <div class="messages-container" id="messagesArea">
+            <div class="empty-state"><i class="fas fa-comment-dots"></i><br>Select a conversation to start</div>
+        </div>
+        
+        <!-- Input Area - Always visible -->
+        <div class="input-area" id="inputArea">
+            <input type="text" id="msgInput" placeholder="Type a message..." onkeypress="if(event.key=='Enter')sendMsg()">
+            <button onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
+        </div>
     </div>
 </div>
 
+<!-- Bottom Navigation -->
 <div class="bottom-nav">
-    <button class="nav-item active" onclick="switchTab('chats')"><i class="fas fa-comment-dots"></i><span>Chats</span></button>
-    <button class="nav-item" onclick="switchTab('channels')"><i class="fas fa-hashtag"></i><span>Channels</span></button>
-    <button class="nav-item" onclick="switchTab('settings')"><i class="fas fa-user"></i><span>Profile</span></button>
+    <button class="nav-btn active" onclick="switchTab('chats')"><i class="fas fa-comment-dots"></i><span>Chats</span></button>
+    <button class="nav-btn" onclick="switchTab('channels')"><i class="fas fa-hashtag"></i><span>Channels</span></button>
+    <button class="nav-btn" onclick="switchTab('settings')"><i class="fas fa-user"></i><span>Profile</span></button>
 </div>
 
 <!-- Channel Modal -->
@@ -93,13 +148,10 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white"><h5><i class="fas fa-hashtag"></i> Create Channel</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
-                <input type="text" id="channelName" class="form-control mb-3" placeholder="Channel name" style="padding:12px;border-radius:10px;">
-                <textarea id="channelDesc" class="form-control" placeholder="Description (optional)" rows="3" style="border-radius:10px;"></textarea>
+                <input type="text" id="channelName" class="form-control mb-3" placeholder="Channel name">
+                <textarea id="channelDesc" class="form-control" placeholder="Description" rows="3"></textarea>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-success" onclick="createChannel()">Create</button>
-            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success" onclick="createChannel()">Create</button></div>
         </div>
     </div>
 </div>
@@ -110,42 +162,54 @@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white"><h5><i class="fas fa-user-circle"></i> Profile</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
             <div class="modal-body text-center">
-                <div class="avatar" style="width:80px;height:80px;font-size:2rem;margin:0 auto 15px;">👤</div>
+                <div class="avatar-large" id="modalAvatar">👤</div>
                 <h4 id="pName">-</h4>
                 <p class="text-muted" id="pUsername">@-</p>
-                <p id="pBio" style="padding:10px;background:#f5f5f5;border-radius:10px;">-</p>
+                <p id="pBio" class="bio-box">-</p>
                 <button class="btn btn-success w-100" onclick="sendFromProfile()"><i class="fas fa-paper-plane"></i> Send Message</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Install Popup -->
+<div id="installPopup" class="install-popup">
+    <div class="install-content">
+        <div class="install-icon">💬</div>
+        <div class="install-text"><h4>EvaMassage</h4><p>Install app for better experience</p></div>
+        <button onclick="installApp()" class="install-btn">Install</button>
+        <button onclick="closeInstallPopup()" class="close-btn">&times;</button>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// ========== VARIABLES ==========
 let currentId = null;
 let currentType = 'user';
 let currentName = '';
 let msgTimer = null;
 let profileId = null;
+let deferredPrompt = null;
 const ME = {{ user.user_id }};
 
-// Switch tabs
+// ========== TAB SWITCH ==========
 function switchTab(tab){
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tab + 'Tab').classList.add('active');
     event.target.classList.add('active');
     if(tab == 'chats') loadChats();
     if(tab == 'channels') loadChannels();
 }
 
-// Load chats
+// ========== CHATS ==========
 function loadChats(){
     $.get('/api/chats', function(data){
         let html = '';
         if(!data || data.length === 0){
-            html = '<div class="empty"><i class="fas fa-comments fa-3x mb-2 d-block"></i>No chats yet<br><small>Search for people above</small></div>';
+            html = '<div class="empty-state"><i class="fas fa-comments"></i><br>No chats yet<br><small>Search for people above</small></div>';
         } else {
             data.forEach(c => {
                 html += `<div class="chat-item">
@@ -153,37 +217,33 @@ function loadChats(){
                         <div class="avatar">${escapeHtml(c.full_name.charAt(0).toUpperCase())}</div>
                         <div><b>${escapeHtml(c.full_name)}</b><br><small>${c.last_message ? escapeHtml(c.last_message.substring(0,30)) : 'Tap to chat'}</small></div>
                     </div>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="viewProfile(${c.user_id},'${escapeHtml(c.full_name)}')" style="border-radius:50%;"><i class="fas fa-info-circle"></i></button>
+                    <button class="btn btn-sm" onclick="viewProfile(${c.user_id},'${escapeHtml(c.full_name)}')"><i class="fas fa-info-circle"></i></button>
                 </div>`;
             });
         }
         $('#chatList').html(html);
-    }).fail(function(){
-        $('#chatList').html('<div class="empty">Error loading chats</div>');
     });
 }
 
-// Load channels
+// ========== CHANNELS ==========
 function loadChannels(){
     $.get('/api/channels', function(data){
         let html = '';
         if(!data || data.length === 0){
-            html = '<div class="empty"><i class="fas fa-hashtag fa-3x mb-2 d-block"></i>No channels yet<br><button class="btn btn-sm btn-success mt-2" onclick="showChannelModal()">Create First Channel</button></div>';
+            html = '<div class="empty-state"><i class="fas fa-hashtag"></i><br>No channels yet<br><button class="btn btn-sm btn-success mt-2" onclick="showChannelModal()">Create First Channel</button></div>';
         } else {
             data.forEach(c => {
                 html += `<div class="channel-item" onclick="selectChat('${c.id}','${escapeHtml(c.name)}','channel')">
-                    <div><i class="fas fa-hashtag"></i> <b>${escapeHtml(c.name)}</b><br><small>${c.description || 'No description'}</small></div>
+                    <div><i class="fas fa-hashtag"></i> <b>${escapeHtml(c.name)}</b><br><small>${escapeHtml(c.description) || 'No description'}</small></div>
                     <span class="badge bg-secondary">${c.member_count} members</span>
                 </div>`;
             });
         }
         $('#channelsList').html(html);
-    }).fail(function(){
-        $('#channelsList').html('<div class="empty">Error loading channels</div>');
     });
 }
 
-// Select chat
+// ========== SELECT CHAT ==========
 function selectChat(id, name, type){
     currentId = id;
     currentType = type;
@@ -201,24 +261,21 @@ function selectChat(id, name, type){
     }
     
     if(window.innerWidth <= 768){
-        $('#panelLeft').addClass('hide');
+        $('#sidebar').addClass('hide');
     }
 }
 
-// Load private messages
+// ========== PRIVATE MESSAGES ==========
 function loadMessages(){
     if(!currentId || currentType != 'user') return;
     $.get('/api/messages/' + currentId, function(msgs){
         let html = '';
         if(!msgs || msgs.length === 0){
-            html = '<div class="empty"><i class="fas fa-comment-dots fa-3x mb-2 d-block"></i>No messages yet<br><small>Say hello!</small></div>';
+            html = '<div class="empty-state"><i class="fas fa-comment-dots"></i><br>No messages yet<br><small>Say hello!</small></div>';
         } else {
             msgs.forEach(m => {
                 let sent = (m.from_id === ME);
-                html += `<div class="msg ${sent ? 'sent' : 'recv'}">
-                    ${escapeHtml(m.message)}
-                    <div class="msg-time">${formatTime(m.created_at)}</div>
-                </div>`;
+                html += `<div class="msg ${sent ? 'sent' : 'recv'}">${escapeHtml(m.message)}<div class="msg-time">${formatTime(m.created_at)}</div></div>`;
             });
         }
         $('#messagesArea').html(html);
@@ -226,21 +283,17 @@ function loadMessages(){
     });
 }
 
-// Load channel messages
+// ========== CHANNEL MESSAGES ==========
 function loadChannelMessages(){
     if(!currentId || currentType != 'channel') return;
     $.get('/api/channels/' + currentId + '/messages', function(msgs){
         let html = '';
         if(!msgs || msgs.length === 0){
-            html = '<div class="empty"><i class="fas fa-hashtag fa-3x mb-2 d-block"></i>No messages in channel<br><small>Be the first to message!</small></div>';
+            html = '<div class="empty-state"><i class="fas fa-hashtag"></i><br>No messages in channel<br><small>Be the first to message!</small></div>';
         } else {
             msgs.forEach(m => {
                 let sent = (m.from_id === ME);
-                html += `<div class="msg ${sent ? 'sent' : 'recv'}">
-                    ${!sent ? '<div class="msg-name">' + escapeHtml(m.from_name) + '</div>' : ''}
-                    ${escapeHtml(m.message)}
-                    <div class="msg-time">${formatTime(m.created_at)}</div>
-                </div>`;
+                html += `<div class="msg ${sent ? 'sent' : 'recv'}">${!sent ? '<div class="msg-name">' + escapeHtml(m.from_name) + '</div>' : ''}${escapeHtml(m.message)}<div class="msg-time">${formatTime(m.created_at)}</div></div>`;
             });
         }
         $('#messagesArea').html(html);
@@ -248,11 +301,20 @@ function loadChannelMessages(){
     });
 }
 
-// Send message
+// ========== SEND MESSAGE ==========
 function sendMsg(){
     let msg = $('#msgInput').val().trim();
-    if(!msg || !currentId) return;
+    if(!msg){
+        console.log("No message");
+        return;
+    }
+    if(!currentId){
+        alert("Please select a chat first");
+        return;
+    }
+    
     $('#msgInput').val('');
+    $('#msgInput').prop('disabled', true);
     
     if(currentType == 'user'){
         $.ajax({
@@ -269,10 +331,8 @@ function sendMsg(){
                     $('#msgInput').val(msg);
                 }
             },
-            error: function(){
-                alert('Failed to send message');
-                $('#msgInput').val(msg);
-            }
+            error: function(){ alert('Failed to send'); $('#msgInput').val(msg); },
+            complete: function(){ $('#msgInput').prop('disabled', false); $('#msgInput').focus(); }
         });
     } else {
         $.ajax({
@@ -284,25 +344,20 @@ function sendMsg(){
                 if(r.success){
                     loadChannelMessages();
                 } else {
-                    alert(r.error || 'Failed to send');
+                    alert(r.error || 'Failed to send to channel');
                     $('#msgInput').val(msg);
                 }
             },
-            error: function(){
-                alert('Failed to send message');
-                $('#msgInput').val(msg);
-            }
+            error: function(){ alert('Failed to send'); $('#msgInput').val(msg); },
+            complete: function(){ $('#msgInput').prop('disabled', false); $('#msgInput').focus(); }
         });
     }
 }
 
-// Create channel
+// ========== CREATE CHANNEL ==========
 function createChannel(){
     let name = $('#channelName').val().trim();
-    if(!name){
-        alert('Please enter a channel name');
-        return;
-    }
+    if(!name){ alert('Enter channel name'); return; }
     
     $.ajax({
         url: '/api/channels',
@@ -312,91 +367,76 @@ function createChannel(){
         success: function(r){
             if(r.success){
                 $('#channelModal').modal('hide');
-                $('#channelName').val('');
-                $('#channelDesc').val('');
+                $('#channelName,#channelDesc').val('');
                 loadChannels();
                 switchTab('channels');
                 alert('Channel "' + r.name + '" created!');
-            } else {
-                alert(r.error || 'Failed to create channel');
-            }
+            } else { alert(r.error); }
         },
-        error: function(xhr){
-            let error = 'Failed to create channel';
-            if(xhr.responseJSON && xhr.responseJSON.error) error = xhr.responseJSON.error;
-            alert(error);
-        }
+        error: function(xhr){ alert(xhr.responseJSON?.error || 'Failed'); }
     });
 }
 
-// View profile
+// ========== PROFILE ==========
 function viewProfile(id, name){
     profileId = id;
     $('#pName').text(name);
     $('#pUsername').text('@loading...');
     $('#pBio').text('Loading...');
-    
     $.get('/api/users/profile/' + id, function(p){
         $('#pName').text(p.full_name || name);
         $('#pUsername').text('@' + (p.username || ''));
-        $('#pBio').text(p.bio || 'No bio available');
-    }).fail(function(){
-        $('#pBio').text('Could not load profile');
+        $('#pBio').text(p.bio || 'No bio');
     });
-    
-    $('#profileModal').modal('show');
+    new bootstrap.Modal(document.getElementById('profileModal')).show();
 }
 
-// Send from profile
 function sendFromProfile(){
     if(profileId){
         $('#profileModal').modal('hide');
         $.get('/api/users/profile/' + profileId, function(p){
             selectChat(profileId, p.full_name, 'user');
-        }).fail(function(){
-            selectChat(profileId, 'User', 'user');
         });
     }
 }
 
-// Open current chat profile
 function openProfile(){
-    if(currentId && currentType == 'user'){
-        viewProfile(currentId, currentName);
-    }
+    if(currentId && currentType == 'user') viewProfile(currentId, currentName);
 }
 
-// Go back on mobile
-function goBack(){
-    $('#panelLeft').removeClass('hide');
+// ========== UTILITIES ==========
+function goBack(){ $('#sidebar').removeClass('hide'); }
+function logout(){ if(confirm('Logout?')) window.location.href = '/logout'; }
+function showChannelModal(){ $('#channelModal').modal('show'); }
+
+function escapeHtml(t){
+    if(!t) return '';
+    return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Logout
-function logout(){
-    if(confirm('Are you sure you want to logout?')){
-        window.location.href = '/logout';
-    }
+function formatTime(s){
+    try{
+        let d = new Date(s);
+        if(isNaN(d)) return '';
+        let now = new Date();
+        if(d.toDateString() === now.toDateString()){
+            return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        }
+        return d.toLocaleDateString([], {month:'short', day:'numeric'});
+    } catch(e){ return ''; }
 }
 
-// Show channel modal
-function showChannelModal(){
-    $('#channelModal').modal('show');
-}
-
-// Search users
+// ========== SEARCH USERS ==========
 let searchTimer;
 $('#searchInput').on('input', function(){
     let q = $(this).val().trim();
     clearTimeout(searchTimer);
-    if(q.length < 2){
-        loadChats();
-        return;
-    }
-    searchTimer = setTimeout(() => {
+    if(q.length < 2){ loadChats(); return; }
+        searchTimer = setTimeout(() => {
         $.get('/api/users/search', {q: q}, function(users){
             let html = '';
             if(!users || users.length === 0){
-                html = '<div class="empty">No users found</div>';
+                html = '<div class="empty-state">No users found</div>';
             } else {
                 users.forEach(u => {
                     html += `<div class="chat-item" onclick="selectChat(${u.user_id},'${escapeHtml(u.full_name)}','user');$('#searchInput').val('');loadChats();">
@@ -410,38 +450,42 @@ $('#searchInput').on('input', function(){
     }, 300);
 });
 
-// Utils
-function escapeHtml(t){
-    if(!t) return '';
-    return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+// ========== INSTALL POPUP ==========
+function showInstallPopup(){ 
+    if(!localStorage.getItem('popupClosed')) 
+        $('#installPopup').show(); 
 }
 
-function formatTime(s){
-    try{
-        let d = new Date(s);
-        if(isNaN(d)) return '';
-        let now = new Date();
-        if(d.toDateString() === now.toDateString()){
-            return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        }
-        return d.toLocaleDateString([], {month:'short', day:'numeric'});
-    } catch(e){
-        return '';
-    }
+function closeInstallPopup(){ 
+    $('#installPopup').hide(); 
+    localStorage.setItem('popupClosed','true'); 
 }
 
-// Handle back button on mobile
-$(document).on('click', '.back-btn', goBack);
-
-// Initial load
-$(function(){
-    loadChats();
-    setInterval(loadChats, 10000);
-    
-    // Check for mobile back button
-    if(window.innerWidth <= 768){
-        $('.panel-left').after('<button class="back-btn" style="position:fixed;top:10px;left:10px;z-index:100;background:#075e54;color:#fff;border:none;padding:10px 15px;border-radius:25px;display:none;"><i class="fas fa-arrow-left"></i> Back</button>');
+function installApp(){
+    if(deferredPrompt){ 
+        deferredPrompt.prompt(); 
+        deferredPrompt = null; 
+    } else { 
+        alert('Tap Share → Add to Home Screen'); 
     }
+    closeInstallPopup();
+}
+
+window.addEventListener('beforeinstallprompt', (e) => { 
+    e.preventDefault(); 
+    deferredPrompt = e; 
+    showInstallPopup(); 
+});
+
+setTimeout(() => { 
+    if(!localStorage.getItem('popupClosed') && !deferredPrompt) 
+        showInstallPopup(); 
+}, 3000);
+
+// ========== INIT ==========
+$(function(){ 
+    loadChats(); 
+    setInterval(loadChats, 10000); 
 });
 </script>
 </body>
