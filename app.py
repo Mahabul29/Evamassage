@@ -4,7 +4,8 @@ from routes.auth import auth_bp
 from routes.user_routes import user_bp
 from routes.message_routes import msg_bp
 from routes.channel_routes import channel_bp
-from routes.call_routes import call_bp   # ← NEW: WebRTC call signaling
+from routes.call_routes import call_bp       # WebRTC call signaling
+from routes.file_routes import file_bp       # File / photo upload
 import os
 
 app = Flask(__name__)
@@ -15,7 +16,8 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(msg_bp)
 app.register_blueprint(channel_bp)
-app.register_blueprint(call_bp)          # ← NEW
+app.register_blueprint(call_bp)
+app.register_blueprint(file_bp)
 
 # Serve static files
 @app.route('/static/<path:path>')
