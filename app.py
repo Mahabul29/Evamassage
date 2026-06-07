@@ -20,30 +20,49 @@ try:
     messages_collection = db['messages']
     chats_collection = db['chats']
     
-    # Create indexes
+    # Create indexes for faster search
     users_collection.create_index('username', unique=True)
     users_collection.create_index('user_id', unique=True)
+    messages_collection.create_index([('from_id', 1), ('to_id', 1)])
+    messages_collection.create_index('created_at')
+    chats_collection.create_index([('user1_id', 1), ('user2_id', 1)], unique=True)
     
-    print("✅ MongoDB Connected")
+    print(f"✅ MongoDB Connected to {MONGO_DB_NAME}")
 except Exception as e:
     print(f"❌ MongoDB Error: {e}")
-    # Create in-memory fallback for testing
     users_collection = None
-    print("⚠️ Using fallback mode")
 
 # ============================================
 # HELPER FUNCTIONS
 # ============================================
 def hash_password(password):
+    """Hash password using SHA-256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 def login_required(f):
+    """Decorator to require login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return jsonify({"error": "Please login first"}), 401
         return f(*args, **kwargs)
     return decorated_function
+
+def get_user_profile(user_id):
+    """Get user profile by ID"""
+    if users_collection is None:
+        return None
+    user = users_collection.find_one({'user_id': user_id})
+    if user:
+        return {
+            "user_id": user['user_id'],
+            "username": user['username'],
+            "full_name": user.get('full_name', user['username']),
+            "bio": user.get('bio', "Hey! I'm using EvaMassage"),
+            "profile_pic": user.get('profile_pic'),
+            "joined": user.get('created_at')
+        }
+    return None
 
 # ============================================
 # PAGE ROUTES
@@ -59,35 +78,27 @@ def index():
 def dashboard():
     return render_template('index.html', user=session)
 
+@app.route('/profile')
+@login_required
+def profile_page():
+    profile = get_user_profile(session['user_id'])
+    return render_template('profile.html', profile=profile)
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
 # ============================================
-# REGISTER API - FIXED VERSION
+# AUTHENTICATION API
 # ============================================
 @app.route('/api/register', methods=['POST'])
 def register():
-    print("=" * 50)
-    print("REGISTER API CALLED")
-    print("=" * 50)
-    
     try:
-        # Get JSON data
-        data = request.get_json()
-        print(f"Received data: {data}")
-        
-        if not data:
-            return jsonify({"success": False, "error": "No data received"}), 400
-        
-        username = data.get('username', '').strip()
+        data = request.json
+        username = data.get('username', '').strip().lower()
         password = data.get('password', '')
         full_name = data.get('full_name', '').strip()
-        
-        print(f"Username: {username}")
-        print(f"Password length: {len(password)}")
-        print(f"Full name: {full_name}")
         
         # Validation
         if not username or len(username) < 3:
@@ -99,26 +110,19 @@ def register():
         if not full_name:
             full_name = username
         
-        # Check if MongoDB is available
         if users_collection is None:
-            # Fallback - just return success for testing
-            print("⚠️ Using fallback mode - user created in memory")
-            return jsonify({"success": True, "message": "Registration successful! (Demo mode)"})
+            return jsonify({"success": False, "error": "Database not connected"}), 500
         
         # Check if username exists
-        existing_user = users_collection.find_one({'username': username})
-        if existing_user:
-            print(f"Username {username} already exists")
+        if users_collection.find_one({'username': username}):
             return jsonify({"success": False, "error": "Username already exists"}), 400
         
         # Create new user
         user_id = secrets.randbelow(1000000000)
-        hashed_password = hash_password(password)
-        
         user = {
             'user_id': user_id,
             'username': username,
-            'password': hashed_password,
+            'password': hash_password(password),
             'full_name': full_name,
             'bio': '',
             'profile_pic': '',
@@ -128,42 +132,21 @@ def register():
         }
         
         users_collection.insert_one(user)
-        print(f"✅ User created successfully: {username} (ID: {user_id})")
-        
         return jsonify({"success": True, "message": "Registration successful! Please login."})
     
     except Exception as e:
-        print(f"❌ ERROR in register: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "error": f"Server error: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
-# ============================================
-# LOGIN API
-# ============================================
 @app.route('/api/login', methods=['POST'])
 def login():
-    print("=" * 50)
-    print("LOGIN API CALLED")
-    print("=" * 50)
-    
     try:
-        data = request.get_json()
-        print(f"Received data: {data}")
-        
-        username = data.get('username')
-        password = data.get('password')
+        data = request.json
+        username = data.get('username', '').strip().lower()
+        password = data.get('password', '')
         hashed_password = hash_password(password)
         
-        print(f"Login attempt for: {username}")
-        
         if users_collection is None:
-            # Demo mode - accept any login
-            print("⚠️ Using fallback mode - demo login")
-            session['user_id'] = 123
-            session['username'] = username
-            session['full_name'] = username
-            return jsonify({"success": True, "user": {"user_id": 123, "username": username, "full_name": username}})
+            return jsonify({"success": False, "error": "Database not connected"}), 500
         
         user = users_collection.find_one({
             'username': username,
@@ -182,7 +165,6 @@ def login():
                 {'$set': {'last_login': datetime.now()}}
             )
             
-            print(f"✅ Login successful: {username}")
             return jsonify({
                 "success": True,
                 "user": {
@@ -192,25 +174,222 @@ def login():
                 }
             })
         
-        print(f"❌ Login failed: Invalid credentials for {username}")
         return jsonify({"success": False, "error": "Invalid username or password"}), 401
     
     except Exception as e:
-        print(f"❌ ERROR in login: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 # ============================================
-# TEST ENDPOINT
+# USER API
 # ============================================
-@app.route('/api/test', methods=['GET'])
-def test():
+@app.route('/api/users/search')
+@login_required
+def search_users():
+    query = request.args.get('q', '').strip().lower()
+    if len(query) < 2:
+        return jsonify([])
+    
+    if users_collection is None:
+        return jsonify([])
+    
+    # Search users
+    users = users_collection.find({
+        '$and': [
+            {'user_id': {'$ne': session['user_id']}},
+            {'$or': [
+                {'username': {'$regex': query, '$options': 'i'}},
+                {'full_name': {'$regex': query, '$options': 'i'}}
+            ]}
+        ]
+    }).limit(20)
+    
+    result = []
+    for user in users:
+        result.append({
+            "user_id": user['user_id'],
+            "username": user['username'],
+            "full_name": user.get('full_name', user['username']),
+            "bio": user.get('bio', '')
+        })
+    
+    return jsonify(result)
+
+@app.route('/api/users/profile/<int:user_id>')
+@login_required
+def get_profile(user_id):
+    profile = get_user_profile(user_id)
+    if profile:
+        return jsonify(profile)
+    return jsonify({"error": "User not found"}), 404
+
+@app.route('/api/users/update_profile', methods=['POST'])
+@login_required
+def update_profile():
+    try:
+        data = request.json
+        update_data = {}
+        
+        if data.get('full_name'):
+            update_data['full_name'] = data.get('full_name')
+            session['full_name'] = data.get('full_name')
+        
+        if data.get('bio'):
+            update_data['bio'] = data.get('bio')
+        
+        if update_data and users_collection:
+            users_collection.update_one(
+                {'user_id': session['user_id']},
+                {'$set': update_data}
+            )
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ============================================
+# MESSAGES API
+# ============================================
+@app.route('/api/messages/send', methods=['POST'])
+@login_required
+def send_message():
+    try:
+        data = request.json
+        to_id = data.get('to_id')
+        message = data.get('message', '').strip()
+        
+        if not message:
+            return jsonify({"error": "Message cannot be empty"}), 400
+        
+        if users_collection is None:
+            return jsonify({"error": "Database error"}), 500
+        
+        # Save message
+        message_doc = {
+            'from_id': session['user_id'],
+            'to_id': to_id,
+            'message': message,
+            'is_read': False,
+            'created_at': datetime.now()
+        }
+        messages_collection.insert_one(message_doc)
+        
+        # Update or create chat
+        user1, user2 = sorted([session['user_id'], to_id])
+        chats_collection.update_one(
+            {'user1_id': user1, 'user2_id': user2},
+            {'$set': {
+                'last_message': message,
+                'last_message_time': datetime.now()
+            }},
+            upsert=True
+        )
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/messages/<int:user_id>')
+@login_required
+def get_messages(user_id):
+    try:
+        if users_collection is None:
+            return jsonify([])
+        
+        messages = messages_collection.find({
+            '$or': [
+                {'from_id': session['user_id'], 'to_id': user_id},
+                {'from_id': user_id, 'to_id': session['user_id']}
+            ]
+        }).sort('created_at', 1).limit(100)
+        
+        result = []
+        for msg in messages:
+            result.append({
+                "id": str(msg['_id']),
+                "from_id": msg['from_id'],
+                "to_id": msg['to_id'],
+                "message": msg['message'],
+                "is_read": msg.get('is_read', False),
+                "created_at": msg['created_at']
+            })
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/chats')
+@login_required
+def get_chats():
+    try:
+        if users_collection is None:
+            return jsonify([])
+        
+        chats = chats_collection.find({
+            '$or': [
+                {'user1_id': session['user_id']},
+                {'user2_id': session['user_id']}
+            ]
+        }).sort('last_message_time', -1)
+        
+        chat_list = []
+        for chat in chats:
+            other_user_id = chat['user2_id'] if chat['user1_id'] == session['user_id'] else chat['user1_id']
+            profile = get_user_profile(other_user_id)
+            if profile:
+                profile['last_message'] = chat.get('last_message', '')
+                profile['last_message_time'] = chat.get('last_message_time')
+                chat_list.append(profile)
+        
+        return jsonify(chat_list)
+    except Exception as e:
+        return jsonify([])
+
+@app.route('/api/unread_count')
+@login_required
+def unread_count():
+    try:
+        if users_collection is None:
+            return jsonify({"count": 0})
+        
+        count = messages_collection.count_documents({
+            'to_id': session['user_id'],
+            'is_read': False
+        })
+        return jsonify({"count": count})
+    except Exception:
+        return jsonify({"count": 0})
+
+@app.route('/api/messages/mark_read', methods=['POST'])
+@login_required
+def mark_read():
+    try:
+        data = request.json
+        from_user_id = data.get('user_id')
+        
+        if users_collection:
+            messages_collection.update_many(
+                {'from_id': from_user_id, 'to_id': session['user_id'], 'is_read': False},
+                {'$set': {'is_read': True}}
+            )
+        
+        return jsonify({"success": True})
+    except Exception:
+        return jsonify({"success": False})
+
+# ============================================
+# HEALTH CHECK
+# ============================================
+@app.route('/health')
+def health_check():
     return jsonify({
-        "status": "ok",
-        "message": "API is working",
-        "mongodb": "connected" if users_collection else "fallback"
+        "status": "healthy",
+        "database": "mongodb" if users_collection else "disconnected",
+        "timestamp": datetime.now()
     })
 
+# ============================================
+# RUN APP
+# ============================================
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    print(f"🚀 Server starting on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    print(f"🚀 EvaMassage starting on port {PORT}")
+    app.run(host='0.0.0.0', port=PORT, debug=DEBUG)
