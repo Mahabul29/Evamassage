@@ -55,17 +55,31 @@
             font-size: 0.8rem;
         }
         
-        /* Settings Button */
-        .settings-btn {
+        /* Profile and Settings Buttons */
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-btn {
             color: white;
             font-size: 1.2rem;
             cursor: pointer;
-            transition: transform 0.2s;
-            margin-right: 15px;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.2);
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
         }
         
-        .settings-btn:hover {
-            transform: rotate(30deg);
+        .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
         }
         
         /* Search Box */
@@ -401,17 +415,23 @@
     <div class="chat-container">
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
-            <!-- UPDATED SIDEBAR HEADER WITH SETTINGS BUTTON -->
+            <!-- Sidebar Header with Profile + Settings Buttons -->
             <div class="sidebar-header">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <h4><i class="fas fa-comment-dots"></i> EvaMassage</h4>
                         <small>Welcome, {{ user.full_name }}</small>
                     </div>
-                    <div style="display: flex; align-items: center;">
-                        <a href="/settings" class="settings-btn">
+                    <div class="header-buttons">
+                        <!-- Profile Button -->
+                        <a href="/profile" class="header-btn" title="My Profile">
+                            <i class="fas fa-user-circle"></i>
+                        </a>
+                        <!-- Settings Button -->
+                        <a href="/settings" class="header-btn" title="Settings">
                             <i class="fas fa-cog"></i>
                         </a>
+                        <!-- Close Sidebar Button (Mobile only) -->
                         <button class="btn btn-sm btn-light" onclick="closeSidebar()" id="closeSidebarBtn" style="display: none;">
                             <i class="fas fa-times"></i>
                         </button>
@@ -606,25 +626,4 @@
         
         // Send Message
         function sendMessage() {
-            const message = $('#messageInput').val().trim();
-            if (message && currentChatId) {
-                $.post('/api/messages/send', {
-                    to_id: currentChatId,
-                    message: message
-                }, function(response) {
-                    if (response.success) {
-                        $('#messageInput').val('');
-                        loadMessages(currentChatId);
-                        loadChats();
-                    }
-                });
-            }
-        }
-        
-        // Search Users
-        $('#searchInput').on('input', function() {
-            clearTimeout(searchTimeout);
-            const query = $(this).val().trim();
-            
-            if (query.length >= 2) {
-                searchTimeout = s
+            const message = $('#messa
