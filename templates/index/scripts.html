@@ -1,0 +1,14 @@
+<script src="/static/js/app.js"></script>
+<script src="/static/js/chat.js"></script>
+<script src="/static/js/channel.js"></script>
+<script src="/static/js/install.js"></script>
+
+<script>
+const ME = {{ user.user_id }};
+
+$(function() {
+    loadChats();
+    setInterval(loadChats, 10000);
+    initInstallPopup();
+});
+</script>
