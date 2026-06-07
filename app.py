@@ -31,21 +31,23 @@ try:
 except Exception as e:
     print(f"❌ MongoDB Error: {e}")
     users_collection = None
+    db = None
 
 # ============================================
 # CHANNEL COLLECTIONS INIT
 # ============================================
 def init_channel_collections():
-    if 'channels' not in db.list_collection_names():
-        db.create_collection('channels')
-    if 'channel_members' not in db.list_collection_names():
-        db.create_collection('channel_members')
-    if 'channel_messages' not in db.list_collection_names():
-        db.create_collection('channel_messages')
-    db['channels'].create_index('name')
-    db['channel_members'].create_index([('channel_id', 1), ('user_id', 1)], unique=True)
+    if db is not None:
+        if 'channels' not in db.list_collection_names():
+            db.create_collection('channels')
+        if 'channel_members' not in db.list_collection_names():
+            db.create_collection('channel_members')
+        if 'channel_messages' not in db.list_collection_names():
+            db.create_collection('channel_messages')
+        db['channels'].create_index('name')
+        db['channel_members'].create_index([('channel_id', 1), ('user_id', 1)], unique=True)
 
-if users_collection:
+if users_collection is not None:
     init_channel_collections()
 
 # ============================================
@@ -188,7 +190,7 @@ def login():
                 "user": {
                     "user_id": user['user_id'],
                     "username": user['username'],
-                    "full_name": user.get('full_name', user['username'])
+                    "full_name': user.get('full_name', user['username'])
                 }
             })
         
@@ -253,7 +255,7 @@ def update_profile():
         if data.get('bio'):
             update_data['bio'] = data.get('bio')
         
-        if update_data and users_collection:
+        if update_data and users_collection is not None:
             users_collection.update_one(
                 {'user_id': session['user_id']},
                 {'$set': update_data}
@@ -469,7 +471,7 @@ def mark_read():
         data = request.json
         from_user_id = data.get('user_id')
         
-        if users_collection:
+        if users_collection is not None:
             messages_collection.update_many(
                 {'from_id': from_user_id, 'to_id': session['user_id'], 'is_read': False},
                 {'$set': {'is_read': True}}
@@ -498,7 +500,7 @@ app.register_blueprint(channel_bp)
 def health_check():
     return jsonify({
         "status": "healthy",
-        "database": "mongodb" if users_collection else "disconnected",
+        "database": "mongodb" if users_collection is not None else "disconnected",
         "timestamp": datetime.now()
     })
 
