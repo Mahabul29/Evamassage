@@ -2,16 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>EvaMassage - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        
         .login-container {
             min-height: 100vh;
             display: flex;
@@ -19,53 +26,176 @@
             justify-content: center;
             padding: 20px;
         }
+        
         .login-card {
             width: 100%;
             max-width: 450px;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             background: white;
+            animation: slideUp 0.5s ease-out;
         }
-        .btn-primary {
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .login-card .card-body {
+            padding: 40px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo i {
+            font-size: 60px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .btn-success {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            border: none;
+        
+        .logo h2 {
+            margin-top: 10px;
+            color: #333;
         }
+        
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .nav-tabs {
+            border: none;
+            margin-bottom: 25px;
+        }
+        
         .nav-tabs .nav-link {
+            border: none;
             color: #667eea;
             font-weight: 500;
-            border: none;
+            padding: 10px 0;
+            margin-right: 30px;
+            background: transparent;
         }
+        
         .nav-tabs .nav-link.active {
             color: #764ba2;
             border-bottom: 2px solid #764ba2;
             background: transparent;
         }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+        }
+        
         .alert {
-            display: none;
+            padding: 12px;
+            border-radius: 10px;
             margin-top: 15px;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .login-card .card-body {
+                padding: 30px 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="card login-card">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <i class="fas fa-comment-dots fa-4x" style="color: #667eea"></i>
-                    <h2 class="mt-3">EvaMassage</h2>
-                    <p class="text-muted">Connect with amazing people</p>
+            <div class="card-body">
+                <div class="logo">
+                    <i class="fas fa-comment-dots"></i>
+                    <h2>EvaMassage</h2>
+                    <p>Connect with amazing people</p>
                 </div>
                 
-                <ul class="nav nav-tabs mb-4" id="authTab" role="tablist">
+                <ul class="nav nav-tabs" id="authTab" role="tablist">
                     <li class="nav-item">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#login">Login</button>
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#login">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#register">Register</button>
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#register">
+                            <i class="fas fa-user-plus"></i> Register
+                        </button>
                     </li>
                 </ul>
                 
@@ -73,15 +203,17 @@
                     <!-- Login Tab -->
                     <div class="tab-pane fade show active" id="login">
                         <form id="loginForm">
-                            <div class="mb-3">
+                            <div class="form-group">
                                 <label>Username</label>
-                                <input type="text" id="loginUsername" class="form-control" required>
+                                <input type="text" id="loginUsername" class="form-control" placeholder="Enter username" required autocomplete="off">
                             </div>
-                            <div class="mb-3">
+                            <div class="form-group">
                                 <label>Password</label>
-                                <input type="password" id="loginPassword" class="form-control" required>
+                                <input type="password" id="loginPassword" class="form-control" placeholder="Enter password" required>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Login</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </button>
                             <div id="loginError" class="alert alert-danger"></div>
                         </form>
                     </div>
@@ -89,19 +221,23 @@
                     <!-- Register Tab -->
                     <div class="tab-pane fade" id="register">
                         <form id="registerForm">
-                            <div class="mb-3">
+                            <div class="form-group">
                                 <label>Full Name</label>
-                                <input type="text" id="fullName" class="form-control" placeholder="Optional">
+                                <input type="text" id="fullName" class="form-control" placeholder="Your full name (optional)">
                             </div>
-                            <div class="mb-3">
+                            <div class="form-group">
                                 <label>Username</label>
-                                <input type="text" id="regUsername" class="form-control" required>
+                                <input type="text" id="regUsername" class="form-control" placeholder="Choose username" required autocomplete="off">
+                                <small style="color: #666;">Minimum 3 characters</small>
                             </div>
-                            <div class="mb-3">
+                            <div class="form-group">
                                 <label>Password</label>
-                                <input type="password" id="regPassword" class="form-control" required>
+                                <input type="password" id="regPassword" class="form-control" placeholder="Choose password" required>
+                                <small style="color: #666;">Minimum 4 characters</small>
                             </div>
-                            <button type="submit" class="btn btn-success w-100">Create Account</button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-user-plus"></i> Create Account
+                            </button>
                             <div id="registerError" class="alert alert-danger"></div>
                             <div id="registerSuccess" class="alert alert-success"></div>
                         </form>
@@ -114,24 +250,16 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Test API connection first
-        $.get('/api/test', function(data) {
-            console.log('API Test:', data);
-        });
-        
         // REGISTER FORM
         $('#registerForm').on('submit', function(e) {
             e.preventDefault();
             
-            // Hide previous messages
             $('#registerError').hide();
             $('#registerSuccess').hide();
             
             const fullName = $('#fullName').val();
-            const username = $('#regUsername').val();
+            const username = $('#regUsername').val().toLowerCase();
             const password = $('#regPassword').val();
-            
-            console.log('Registering:', {username, fullName, password: '***'});
             
             $.ajax({
                 url: '/api/register',
@@ -143,11 +271,9 @@
                     password: password
                 }),
                 success: function(response) {
-                    console.log('Register success:', response);
                     if (response.success) {
                         $('#registerSuccess').text(response.message).show();
                         $('#registerForm')[0].reset();
-                        // Switch to login tab after 2 seconds
                         setTimeout(function() {
                             $('#authTab button:first-child').tab('show');
                             $('#registerSuccess').hide();
@@ -157,7 +283,6 @@
                     }
                 },
                 error: function(xhr) {
-                    console.error('Register error:', xhr);
                     let errorMsg = 'Registration failed';
                     if (xhr.responseJSON && xhr.responseJSON.error) {
                         errorMsg = xhr.responseJSON.error;
@@ -173,10 +298,8 @@
             
             $('#loginError').hide();
             
-            const username = $('#loginUsername').val();
+            const username = $('#loginUsername').val().toLowerCase();
             const password = $('#loginPassword').val();
-            
-            console.log('Logging in:', {username});
             
             $.ajax({
                 url: '/api/login',
@@ -187,7 +310,6 @@
                     password: password
                 }),
                 success: function(response) {
-                    console.log('Login success:', response);
                     if (response.success) {
                         window.location.href = '/dashboard';
                     } else {
@@ -195,7 +317,6 @@
                     }
                 },
                 error: function(xhr) {
-                    console.error('Login error:', xhr);
                     let errorMsg = 'Login failed';
                     if (xhr.responseJSON && xhr.responseJSON.error) {
                         errorMsg = xhr.responseJSON.error;
@@ -203,6 +324,18 @@
                     $('#loginError').text(errorMsg).show();
                 }
             });
+        });
+        
+        // Enter key support
+        $('#loginPassword, #regPassword').on('keypress', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                if ($(this).closest('#login').length) {
+                    $('#loginForm').submit();
+                } else {
+                    $('#registerForm').submit();
+                }
+            }
         });
     </script>
 </body>
