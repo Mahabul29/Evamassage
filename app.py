@@ -190,7 +190,7 @@ def login():
                 "user": {
                     "user_id": user['user_id'],
                     "username": user['username'],
-                    "full_name': user.get('full_name', user['username'])
+                    "full_name": user.get('full_name', user['username'])
                 }
             })
         
