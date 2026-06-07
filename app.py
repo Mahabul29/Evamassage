@@ -3,53 +3,35 @@ from functools import wraps
 import secrets
 import os
 from datetime import datetime
-import sqlite3
 import hashlib
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
-# Database setup
-DB_PATH = "evamassage.db"
+# ============== MONGODB CONNECTION ==============
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
+client = MongoClient(MONGO_URI)
+db = client['evamassage']  # Database name
 
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    
-    # Users table
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (user_id INTEGER PRIMARY KEY,
-                  username TEXT UNIQUE,
-                  password TEXT,
-                  full_name TEXT,
-                  bio TEXT,
-                  profile_pic TEXT,
-                  is_active BOOLEAN DEFAULT 1,
-                  created_at TIMESTAMP,
-                  last_login TIMESTAMP)''')
-    
-    # Messages table
-    c.execute('''CREATE TABLE IF NOT EXISTS messages
-                 (msg_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  from_id INTEGER,
-                  to_id INTEGER,
-                  message TEXT,
-                  is_read BOOLEAN DEFAULT 0,
-                  created_at TIMESTAMP)''')
-    
-    # Chats table
-    c.execute('''CREATE TABLE IF NOT EXISTS chats
-                 (chat_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  user1_id INTEGER,
-                  user2_id INTEGER,
-                  last_message TEXT,
-                  last_message_time TIMESTAMP,
-                  UNIQUE(user1_id, user2_id))''')
-    
-    conn.commit()
-    conn.close()
+# Collections (like tables)
+users_collection = db['users']
+messages_collection = db['messages']
+chats_collection = db['chats']
 
-init_db()
+# Create indexes for faster queries
+users_collection.create_index('username', unique=True)
+users_collection.create_index('user_id', unique=True)
+messages_collection.create_index([('from_id', 1), ('to_id', 1)])
+chats_collection.create_index([('user1_id', 1), ('user2_id', 1)], unique=True)
+
+print("✅ MongoDB Connected!")
+
+# ============== HELPER FUNCTIONS ==============
+def hash_password(password):
+    """Hash password using SHA-256"""
+    return hashlib.sha256(password.encode()).hexdigest()
 
 def login_required(f):
     @wraps(f)
@@ -58,6 +40,20 @@ def login_required(f):
             return jsonify({"error": "Please login first"}), 401
         return f(*args, **kwargs)
     return decorated_function
+
+def get_user_profile(user_id):
+    """Get user profile from MongoDB"""
+    user = users_collection.find_one({'user_id': user_id})
+    if user:
+        return {
+            "user_id": user['user_id'],
+            "username": user['username'],
+            "full_name": user.get('full_name', user['username']),
+            "bio": user.get('bio', "Hey! I'm using EvaMassage"),
+            "profile_pic": user.get('profile_pic'),
+            "joined": user.get('created_at')
+        }
+    return None
 
 # ============== PAGE ROUTES ==============
 @app.route('/')
@@ -72,92 +68,101 @@ def dashboard():
     profile = get_user_profile(session['user_id'])
     return render_template('index.html', user=session, profile=profile)
 
-# ============== AUTH API ==============
-@app.route('/api/register', methods=['POST'])
-def register():
-    data = request.json
-    username = data.get('username', '').strip()
-    password = data.get('password', '')
-    full_name = data.get('full_name', '').strip()
-    
-    if not username or len(username) < 3:
-        return jsonify({"success": False, "error": "Username must be at least 3 characters"}), 400
-    
-    if not password or len(password) < 4:
-        return jsonify({"success": False, "error": "Password must be at least 4 characters"}), 400
-    
-    if not full_name:
-        full_name = username
-    
-    user_id = secrets.randbelow(1000000000)
-    hashed_password = hashlib.sha256(password.encode()).hexdigest()
-    
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    try:
-        c.execute("INSERT INTO users (user_id, username, password, full_name, created_at) VALUES (?, ?, ?, ?, ?)",
-                 (user_id, username, hashed_password, full_name, datetime.now()))
-        conn.commit()
-        return jsonify({"success": True, "message": "Registration successful!"})
-    except sqlite3.IntegrityError:
-        return jsonify({"success": False, "error": "Username already exists"}), 400
-    finally:
-        conn.close()
-
-@app.route('/api/login', methods=['POST'])
-def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    hashed_password = hashlib.sha256(password.encode()).hexdigest()
-    
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT user_id, username, full_name FROM users WHERE username=? AND password=? AND is_active=1",
-             (username, hashed_password))
-    user = c.fetchone()
-    conn.close()
-    
-    if user:
-        session['user_id'] = user[0]
-        session['username'] = user[1]
-        session['full_name'] = user[2]
-        
-        # Update last login
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("UPDATE users SET last_login=? WHERE user_id=?", (datetime.now(), user[0]))
-        conn.commit()
-        conn.close()
-        
-        return jsonify({"success": True, "user": {"user_id": user[0], "username": user[1], "full_name": user[2]}})
-    
-    return jsonify({"success": False, "error": "Invalid username or password"}), 401
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# ============== USER API ==============
-def get_user_profile(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT user_id, username, full_name, bio, profile_pic, created_at FROM users WHERE user_id=?", (user_id,))
-    user = c.fetchone()
-    conn.close()
-    
-    if user:
-        return {
-            "user_id": user[0],
-            "username": user[1],
-            "full_name": user[2] or user[1],
-            "bio": user[3] or "Hey! I'm using EvaMassage",
-            "profile_pic": user[4],
-            "joined": user[5]
+# ============== AUTH API ==============
+@app.route('/api/register', methods=['POST'])
+def register():
+    try:
+        data = request.json
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        full_name = data.get('full_name', '').strip()
+        
+        print(f"📝 Register attempt: {username}")
+        
+        # Validation
+        if not username or len(username) < 3:
+            return jsonify({"success": False, "error": "Username must be at least 3 characters"}), 400
+        
+        if not password or len(password) < 4:
+            return jsonify({"success": False, "error": "Password must be at least 4 characters"}), 400
+        
+        if not full_name:
+            full_name = username
+        
+        # Check if username exists
+        if users_collection.find_one({'username': username}):
+            return jsonify({"success": False, "error": "Username already exists"}), 400
+        
+        # Create new user
+        user_id = secrets.randbelow(1000000000)
+        user = {
+            'user_id': user_id,
+            'username': username,
+            'password': hash_password(password),  # Store hashed password
+            'full_name': full_name,
+            'bio': '',
+            'profile_pic': '',
+            'is_active': True,
+            'created_at': datetime.now(),
+            'last_login': None
         }
-    return None
+        
+        users_collection.insert_one(user)
+        print(f"✅ User registered: {username} (ID: {user_id})")
+        
+        return jsonify({"success": True, "message": "Registration successful! Please login."})
+    
+    except Exception as e:
+        print(f"❌ Registration error: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.json
+        username = data.get('username')
+        password = data.get('password')
+        hashed_password = hash_password(password)
+        
+        # Find user in MongoDB
+        user = users_collection.find_one({
+            'username': username,
+            'password': hashed_password,
+            'is_active': True
+        })
+        
+        if user:
+            session['user_id'] = user['user_id']
+            session['username'] = user['username']
+            session['full_name'] = user.get('full_name', user['username'])
+            
+            # Update last login
+            users_collection.update_one(
+                {'user_id': user['user_id']},
+                {'$set': {'last_login': datetime.now()}}
+            )
+            
+            return jsonify({
+                "success": True,
+                "user": {
+                    "user_id": user['user_id'],
+                    "username": user['username'],
+                    "full_name": user.get('full_name', user['username'])
+                }
+            })
+        
+        return jsonify({"success": False, "error": "Invalid username or password"}), 401
+    
+    except Exception as e:
+        print(f"❌ Login error: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ============== USER API ==============
 @app.route('/api/users/search')
 @login_required
 def search_users():
@@ -165,18 +170,27 @@ def search_users():
     if len(query) < 2:
         return jsonify([])
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("""SELECT user_id, username, full_name, bio 
-                 FROM users 
-                 WHERE (username LIKE ? OR full_name LIKE ?) 
-                 AND user_id != ? 
-                 LIMIT 20""",
-             (f"%{query}%", f"%{query}%", session['user_id']))
-    users = c.fetchall()
-    conn.close()
+    # Search users in MongoDB
+    users = users_collection.find({
+        '$and': [
+            {'user_id': {'$ne': session['user_id']}},
+            {'$or': [
+                {'username': {'$regex': query, '$options': 'i'}},
+                {'full_name': {'$regex': query, '$options': 'i'}}
+            ]}
+        ]
+    }).limit(20)
     
-    return jsonify([{"user_id": u[0], "username": u[1], "full_name": u[2] or u[1], "bio": u[3]} for u in users])
+    result = []
+    for user in users:
+        result.append({
+            "user_id": user['user_id'],
+            "username": user['username'],
+            "full_name": user.get('full_name', user['username']),
+            "bio": user.get('bio', '')
+        })
+    
+    return jsonify(result)
 
 @app.route('/api/users/profile/<int:user_id>')
 @login_required
@@ -190,15 +204,21 @@ def get_profile(user_id):
 @login_required
 def update_profile():
     data = request.json
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    update_data = {}
+    
     if data.get('full_name'):
-        c.execute("UPDATE users SET full_name=? WHERE user_id=?", (data.get('full_name'), session['user_id']))
+        update_data['full_name'] = data.get('full_name')
         session['full_name'] = data.get('full_name')
+    
     if data.get('bio'):
-        c.execute("UPDATE users SET bio=? WHERE user_id=?", (data.get('bio'), session['user_id']))
-    conn.commit()
-    conn.close()
+        update_data['bio'] = data.get('bio')
+    
+    if update_data:
+        users_collection.update_one(
+            {'user_id': session['user_id']},
+            {'$set': update_data}
+        )
+    
     return jsonify({"success": True})
 
 # ============== MESSAGES API ==============
@@ -212,67 +232,71 @@ def send_message():
     if not message:
         return jsonify({"error": "Message cannot be empty"}), 400
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("INSERT INTO messages (from_id, to_id, message, created_at) VALUES (?, ?, ?, ?)",
-             (session['user_id'], to_id, message, datetime.now()))
+    # Save message to MongoDB
+    message_doc = {
+        'from_id': session['user_id'],
+        'to_id': to_id,
+        'message': message,
+        'is_read': False,
+        'created_at': datetime.now()
+    }
+    messages_collection.insert_one(message_doc)
     
-    # Update chat
+    # Update or create chat
     user1, user2 = sorted([session['user_id'], to_id])
-    c.execute("INSERT OR REPLACE INTO chats (user1_id, user2_id, last_message, last_message_time) VALUES (?, ?, ?, ?)",
-             (user1, user2, message, datetime.now()))
-    conn.commit()
-    conn.close()
+    chats_collection.update_one(
+        {'user1_id': user1, 'user2_id': user2},
+        {'$set': {
+            'last_message': message,
+            'last_message_time': datetime.now()
+        }},
+        upsert=True
+    )
     
     return jsonify({"success": True})
 
 @app.route('/api/messages/<int:user_id>')
 @login_required
 def get_messages(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("""SELECT msg_id, from_id, to_id, message, is_read, created_at 
-                 FROM messages 
-                 WHERE (from_id=? AND to_id=?) OR (from_id=? AND to_id=?)
-                 ORDER BY created_at ASC LIMIT 100""",
-             (session['user_id'], user_id, user_id, session['user_id']))
-    messages = c.fetchall()
-    conn.close()
+    # Get messages from MongoDB
+    messages = messages_collection.find({
+        '$or': [
+            {'from_id': session['user_id'], 'to_id': user_id},
+            {'from_id': user_id, 'to_id': session['user_id']}
+        ]
+    }).sort('created_at', 1).limit(100)
     
-    return jsonify([{
-        "id": m[0],
-        "from_id": m[1],
-        "to_id": m[2],
-        "message": m[3],
-        "is_read": m[4],
-        "created_at": m[5]
-    } for m in messages])
+    result = []
+    for msg in messages:
+        result.append({
+            "id": str(msg['_id']),
+            "from_id": msg['from_id'],
+            "to_id": msg['to_id'],
+            "message": msg['message'],
+            "is_read": msg.get('is_read', False),
+            "created_at": msg['created_at']
+        })
+    
+    return jsonify(result)
 
 @app.route('/api/chats')
 @login_required
 def get_chats():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("""SELECT 
-                    CASE 
-                        WHEN user1_id = ? THEN user2_id
-                        ELSE user1_id
-                    END as chat_user_id,
-                    last_message,
-                    last_message_time
-                 FROM chats 
-                 WHERE user1_id = ? OR user2_id = ?
-                 ORDER BY last_message_time DESC""",
-             (session['user_id'], session['user_id'], session['user_id']))
-    chats = c.fetchall()
-    conn.close()
+    # Get all chats for user
+    chats = chats_collection.find({
+        '$or': [
+            {'user1_id': session['user_id']},
+            {'user2_id': session['user_id']}
+        ]
+    }).sort('last_message_time', -1)
     
     chat_list = []
     for chat in chats:
-        profile = get_user_profile(chat[0])
+        other_user_id = chat['user2_id'] if chat['user1_id'] == session['user_id'] else chat['user1_id']
+        profile = get_user_profile(other_user_id)
         if profile:
-            profile['last_message'] = chat[1]
-            profile['last_message_time'] = chat[2]
+            profile['last_message'] = chat.get('last_message', '')
+            profile['last_message_time'] = chat.get('last_message_time')
             chat_list.append(profile)
     
     return jsonify(chat_list)
@@ -280,12 +304,40 @@ def get_chats():
 @app.route('/api/unread_count')
 @login_required
 def unread_count():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT COUNT(*) FROM messages WHERE to_id=? AND is_read=0", (session['user_id'],))
-    count = c.fetchone()[0]
-    conn.close()
+    count = messages_collection.count_documents({
+        'to_id': session['user_id'],
+        'is_read': False
+    })
     return jsonify({"count": count})
+
+@app.route('/api/messages/mark_read', methods=['POST'])
+@login_required
+def mark_read():
+    data = request.json
+    from_user_id = data.get('user_id')
+    
+    messages_collection.update_many(
+        {'from_id': from_user_id, 'to_id': session['user_id'], 'is_read': False},
+        {'$set': {'is_read': True}}
+    )
+    
+    return jsonify({"success": True})
+
+# ============== DEBUG ENDPOINT ==============
+@app.route('/api/debug/db', methods=['GET'])
+def debug_db():
+    """Check MongoDB connection"""
+    try:
+        stats = {
+            "status": "ok",
+            "database": "MongoDB",
+            "users_count": users_collection.count_documents({}),
+            "messages_count": messages_collection.count_documents({}),
+            "chats_count": chats_collection.count_documents({})
+        }
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
