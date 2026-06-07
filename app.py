@@ -21,7 +21,6 @@ try:
     messages_collection = db['messages']
     chats_collection = db['chats']
     
-    # Create indexes
     users_collection.create_index('username', unique=True)
     users_collection.create_index('user_id', unique=True)
     messages_collection.create_index([('from_id', 1), ('to_id', 1)])
@@ -107,6 +106,10 @@ def settings_page():
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+@app.route('/sw.js')
+def service_worker():
+    return app.send_static_file('sw.js')
 
 # ============================================
 # AUTHENTICATION API
