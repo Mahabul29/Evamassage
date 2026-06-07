@@ -55,6 +55,19 @@
             font-size: 0.8rem;
         }
         
+        /* Settings Button */
+        .settings-btn {
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-right: 15px;
+        }
+        
+        .settings-btn:hover {
+            transform: rotate(30deg);
+        }
+        
         /* Search Box */
         .search-box {
             padding: 15px;
@@ -74,6 +87,7 @@
         .search-box input:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
         }
         
         /* Search Results */
@@ -257,6 +271,11 @@
             border-radius: 20px;
             font-size: 0.85rem;
             cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .logout-btn:hover {
+            opacity: 0.9;
         }
         
         /* Avatar */
@@ -363,7 +382,11 @@
             border-radius: 3px;
         }
         
-        /* Online Status */
+        /* Links */
+        a {
+            text-decoration: none;
+        }
+        
         .online-dot {
             width: 10px;
             height: 10px;
@@ -378,23 +401,31 @@
     <div class="chat-container">
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
+            <!-- UPDATED SIDEBAR HEADER WITH SETTINGS BUTTON -->
             <div class="sidebar-header">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <h4><i class="fas fa-comment-dots"></i> EvaMassage</h4>
                         <small>Welcome, {{ user.full_name }}</small>
                     </div>
-                    <button class="btn btn-sm btn-light" onclick="closeSidebar()" id="closeSidebarBtn" style="display: none;">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <div style="display: flex; align-items: center;">
+                        <a href="/settings" class="settings-btn">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                        <button class="btn btn-sm btn-light" onclick="closeSidebar()" id="closeSidebarBtn" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             
+            <!-- Search Box -->
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="🔍 Search people by name...">
                 <div id="searchResults" class="search-results"></div>
             </div>
             
+            <!-- Chat List -->
             <div class="chat-list" id="chatList">
                 <div class="empty-state">
                     <i class="fas fa-users"></i>
@@ -596,17 +627,4 @@
             const query = $(this).val().trim();
             
             if (query.length >= 2) {
-                searchTimeout = setTimeout(() => {
-                    $.get(`/api/users/search?q=${encodeURIComponent(query)}`, function(users) {
-                        let html = '';
-                        if (users.length === 0) {
-                            html = '<div class="p-3 text-center text-muted">No users found</div>';
-                        } else {
-                            users.forEach(user => {
-                                html += `
-                                    <div class="search-result-item" onclick="startNewChat(${user.user_id}, '${escapeHtml(user.full_name)}')">
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <div class="avatar avatar-small">
-                                                ${escapeHtml(user.full_name.charAt(0).toUpperCase())}
-                                            </div>
-                               
+                searchTimeout = s
