@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - EvaMassage{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="list-group">
+            <a href="#dashboard" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <a href="#users" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-users"></i> Users
+            </a>
+            <a href="#messages" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-comments"></i> Messages
+            </a>
+            <a href="#banned" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-ban"></i> Banned Users
+            </a>
+            <a href="#settings" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-cog"></i> Settings
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="tab-content">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h3 id="totalUsers">0</h3>
+                                <p>Total Users</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h3 id="totalMessages">0</h3>
+                                <p>Total Messages</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h3 id="activeToday">0</h3>
+                                <p>Active Today</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>Recent Users</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentUsers"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users Tab -->
+            <div class="tab-pane fade" id="users">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>All Users</h5>
+                        <input type="text" id="searchUser" class="form-control mt-2" placeholder="Search users...">
+                    </div>
+                    <div class="card-body">
+                        <div id="usersList"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Banned Tab -->
+            <div class="tab-pane fade" id="banned">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Banned Users</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="bannedList"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>System Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="settingsForm">
+                            <div class="form-check mb-3">
+                                <input type="checkbox" id="maintenanceMode" class="form-check-input">
+                                <label class="form-check-label">Maintenance Mode</label>
+                            </div>
+                            <div class="mb-3">
+                                <label>Maintenance Message</label>
+                                <textarea id="maintenanceMsg" class="form-control" rows="3"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load stats
+function loadStats() {
+    $.get('/api/admin/stats', function(data) {
+        $('#totalUsers').text(data.total_users);
+        $('#totalMessages').text(data.total_messages);
+        $('#activeToday').text(data.active_today);
+    });
+}
+
+// Load users
+function loadUsers() {
+    $.get('/api/admin/users', function(users) {
+        let html = '<table class="table"><thead><tr><th>ID</th><th>Username</th><th>Name</th><th>Joined</th><th>Actions</th></tr></thead><tbody>';
+        users.forEach(user => {
+            html += `<tr>
+                        <td>${user.user_id}</td>
+                        <td>${user.username}</td>
+                        <td>${user.full_name}</td>
+                        <td>${new Date(user.joined).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="banUser(${user.user_id})">Ban</button>
+                        </td>
+                    </tr>`;
+        });
+        html += '</tbody></table>';
+        $('#usersList').html(html);
+    });
+}
+
+function banUser(userId) {
+    if (confirm('Ban this user?')) {
+        $.post(`/api/admin/ban/${userId}`, function(response) {
+            if (response.success) {
+                alert('User banned successfully');
+                loadUsers();
+            }
+        });
+    }
+}
+
+// Initial load
+loadStats();
+loadUsers();
+
+setInterval(loadStats, 30000);
+</script>
+{% endblock %}
