@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify, session
 from datetime import datetime
 from bson.objectid import ObjectId
 from functools import wraps
-from config import db  # FIX: use db directly from config
+from config import db
+import re
 
 channel_bp = Blueprint('channel', __name__)
 
@@ -13,6 +14,11 @@ def login_required(f):
             return jsonify({"error": "Login required"}), 401
         return f(*args, **kwargs)
     return decorated
+
+def make_username(name):
+    """Convert channel name to a clean @username"""
+    u = re.sub(r'[^a-zA-Z0-9_]', '', name.replace(' ', '_')).lower()
+    return u[:30] or 'channel'
 
 @channel_bp.route('/api/channels', methods=['POST'])
 @login_required
@@ -28,24 +34,32 @@ def create_channel():
     if existing:
         return jsonify({"error": "Channel name already exists"}), 400
 
+    username = make_username(name)
+    # Ensure username is unique
+    base = username
+    i = 1
+    while db['channels'].find_one({'username': username}):
+        username = f"{base}{i}"; i += 1
+
     channel = {
-        'name': name,
+        'name':        name,
+        'username':    username,
         'description': description,
-        'created_by': session['user_id'],
-        'created_at': datetime.now(),
-        'is_active': True
+        'created_by':  session['user_id'],
+        'created_at':  datetime.now(),
+        'is_active':   True
     }
     result = db['channels'].insert_one(channel)
     channel_id = result.inserted_id
 
     db['channel_members'].insert_one({
         'channel_id': channel_id,
-        'user_id': session['user_id'],
-        'role': 'admin',
-        'joined_at': datetime.now()
+        'user_id':    session['user_id'],
+        'role':       'admin',
+        'joined_at':  datetime.now()
     })
 
-    return jsonify({"success": True, "id": str(channel_id), "name": name})
+    return jsonify({"success": True, "id": str(channel_id), "name": name, "username": username})
 
 @channel_bp.route('/api/channels', methods=['GET'])
 @login_required
@@ -59,11 +73,33 @@ def get_channels():
             result.append({
                 'id':           str(channel['_id']),
                 'name':         channel['name'],
+                'username':     channel.get('username', make_username(channel['name'])),
                 'description':  channel.get('description', ''),
                 'member_count': member_count,
                 'role':         member.get('role', 'member')
             })
     return jsonify(result)
+
+@channel_bp.route('/api/channels/<channel_id>/info', methods=['GET'])
+@login_required
+def channel_info(channel_id):
+    try:
+        oid = ObjectId(channel_id)
+    except Exception:
+        return jsonify({"error": "Invalid channel ID"}), 400
+    channel = db['channels'].find_one({'_id': oid})
+    if not channel:
+        return jsonify({"error": "Channel not found"}), 404
+    member_count = db['channel_members'].count_documents({'channel_id': oid})
+    username = channel.get('username', make_username(channel['name']))
+    return jsonify({
+        'id':           str(channel['_id']),
+        'name':         channel['name'],
+        'username':     username,
+        'description':  channel.get('description', ''),
+        'member_count': member_count,
+        'invite_link':  f"evamassage://join/{username}"
+    })
 
 @channel_bp.route('/api/channels/<channel_id>/send', methods=['POST'])
 @login_required
@@ -82,9 +118,13 @@ def send_channel_message(channel_id):
     if not message:
         return jsonify({"error": "Message cannot be empty"}), 400
 
+    user = db['users'].find_one({'user_id': session['user_id']})
+    from_name = user.get('full_name', user.get('username', '')) if user else ''
+
     db['channel_messages'].insert_one({
         'channel_id': oid,
         'from_id':    session['user_id'],
+        'from_name':  from_name,
         'message':    message,
         'created_at': datetime.now()
     })
@@ -105,13 +145,16 @@ def get_channel_messages(channel_id):
     msgs = db['channel_messages'].find({'channel_id': oid}).sort('created_at', 1).limit(100)
     result = []
     for msg in msgs:
-        user = db['users'].find_one({'user_id': msg['from_id']})
-        sender_name = user.get('full_name', user.get('username', 'Unknown')) if user else 'Unknown'
+        # Use stored from_name if available, else look up
+        from_name = msg.get('from_name')
+        if not from_name:
+            user = db['users'].find_one({'user_id': msg['from_id']})
+            from_name = user.get('full_name', user.get('username', 'Unknown')) if user else 'Unknown'
         created = msg.get('created_at')
         result.append({
             'id':         str(msg['_id']),
             'from_id':    msg['from_id'],
-            'from_name':  sender_name,
+            'from_name':  from_name,
             'message':    msg.get('message', ''),
             'file_url':   msg.get('file_url'),
             'file_name':  msg.get('file_name'),
@@ -120,4 +163,22 @@ def get_channel_messages(channel_id):
             'created_at': created.isoformat() if hasattr(created, 'isoformat') else str(created or '')
         })
     return jsonify(result)
-        
+
+@channel_bp.route('/api/channels/join/<username>', methods=['POST'])
+@login_required
+def join_by_username(username):
+    channel = db['channels'].find_one({'username': username.lower()})
+    if not channel:
+        return jsonify({"error": "Channel not found"}), 404
+    oid = channel['_id']
+    already = db['channel_members'].find_one({'channel_id': oid, 'user_id': session['user_id']})
+    if already:
+        return jsonify({"success": True, "already_member": True, "id": str(oid), "name": channel['name']})
+    db['channel_members'].insert_one({
+        'channel_id': oid,
+        'user_id':    session['user_id'],
+        'role':       'member',
+        'joined_at':  datetime.now()
+    })
+    return jsonify({"success": True, "id": str(oid), "name": channel['name']})
+    
