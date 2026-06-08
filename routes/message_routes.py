@@ -31,7 +31,7 @@ def get(user_id):
     msgs = get_private_messages(session['user_id'], user_id)
     return jsonify(msgs)
 
-# /full/ route — same as base but named so frontend file-message rendering works
+# FIX: /full/ route — returns file fields because get_private_messages was fixed
 @msg_bp.route('/api/messages/full/<int:user_id>')
 @login_required
 def get_full(user_id):
