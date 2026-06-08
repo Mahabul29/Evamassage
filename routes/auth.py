@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session, render_template, redirect
-from user import create_user, authenticate_user, get_user  # <-- FIX: Changed from 'models.user' to 'user'
+from models.user import create_user, authenticate_user, get_user
 
 auth_bp = Blueprint('auth_bp', __name__)
 
@@ -9,14 +9,14 @@ def register():
         if 'user_id' in session:
             return redirect('/dashboard')
         return render_template('register.html')
-        
+
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '').strip()
     full_name = request.form.get('full_name', '').strip()
-    
+
     if not username or not password:
         return jsonify({'success': False, 'error': 'Missing username or password'})
-        
+
     user, message = create_user(username, password, full_name)
     if user:
         session['user_id'] = user['user_id']
@@ -32,10 +32,10 @@ def login():
         if 'user_id' in session:
             return redirect('/dashboard')
         return render_template('login.html')
-        
+
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '').strip()
-    
+
     user = authenticate_user(username, password)
     if user:
         session['user_id'] = user['user_id']
@@ -49,4 +49,3 @@ def login():
 def logout():
     session.clear()
     return redirect('/')
-    
