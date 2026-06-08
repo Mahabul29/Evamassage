@@ -3,6 +3,12 @@ from datetime import datetime
 from functools import wraps
 import uuid
 
+# Import your user lookup — adjust path if needed
+try:
+    from models.user import get_user_by_id
+except ImportError:
+    get_user_by_id = None
+
 call_bp = Blueprint('call', __name__)
 
 # In-memory signaling store
@@ -32,6 +38,7 @@ def initiate_call():
     call_id = str(uuid.uuid4())
     call_signals[call_id] = {
         'caller_id':         session['user_id'],
+        'caller_name':       session.get('full_name') or session.get('username', 'Unknown'),
         'callee_id':         callee_id,
         'call_type':         call_type,
         'status':            'ringing',
@@ -51,12 +58,8 @@ def incoming_calls():
     my_id = session['user_id']
     for call_id, info in list(call_signals.items()):
         if info['callee_id'] == my_id and info['status'] == 'ringing':
-            db = getattr(request, 'db', None)
-            caller_name = 'Unknown'
-            if db:
-                user = db['users'].find_one({'user_id': info['caller_id']})
-                if user:
-                    caller_name = user.get('full_name', user.get('username', 'Unknown'))
+            # Get caller name from SQL via model, fallback to session name
+            caller_name = info.get('caller_name', 'Unknown')
             return jsonify({
                 "call_id":     call_id,
                 "caller_id":   info['caller_id'],
@@ -161,7 +164,9 @@ def get_candidates(call_id):
     # callee fetches caller's candidates and vice versa
     role = request.args.get('role', 'callee')
     key  = 'candidates_callee' if role == 'callee' else 'candidates_caller'
-    return jsonify({"candidates": info.get(key, [])})
+    candidates = list(info.get(key, []))
+    info[key] = []   # BUG FIX: clear after fetching to prevent duplicate ICE candidates
+    return jsonify({"candidates": candidates})
 
 
 # ── Cleanup stale calls ───────────────────────────────────────────────────────
@@ -178,3 +183,4 @@ def cleanup_calls():
     for cid in to_delete:
         del call_signals[cid]
     return jsonify({"cleaned": len(to_delete)})
+    
