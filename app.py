@@ -1,11 +1,11 @@
-from flask import Flask, render_template, session, redirect, url_for, send_from_directory
+from flask import Flask, render_template, session, redirect, send_from_directory
 from config import SECRET_KEY, PORT
 from routes.auth import auth_bp
 from routes.user_routes import user_bp
 from routes.message_routes import msg_bp
 from routes.channel_routes import channel_bp
-from routes.call_routes import call_bp       # WebRTC call signaling
-from routes.file_routes import file_bp       # File / photo upload
+from routes.call_routes import call_bp
+from routes.file_routes import file_bp
 import os
 
 app = Flask(__name__)
@@ -19,7 +19,7 @@ app.register_blueprint(channel_bp)
 app.register_blueprint(call_bp)
 app.register_blueprint(file_bp)
 
-# Serve static files
+# Static files
 @app.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory('static', path)
