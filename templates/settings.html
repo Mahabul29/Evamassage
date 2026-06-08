@@ -1,302 +1,662 @@
-{% extends "base.html" %}
-{% block title %}Settings{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Settings - EvaMassage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #fff;
+            --text: #111;
+            --text-muted: #666;
+            --border: #e0e0e0;
+            --primary: #00a884;
+            --danger: #e53935;
+        }
+        body.dark {
+            --bg: #111b21;
+            --card-bg: #1f2c34;
+            --text: #e9edef;
+            --text-muted: #8696a0;
+            --border: #2a3942;
+        }
 
-{% block content %}
-<style>
-    /* Styling variables corresponding to application layouts */
-    body {
-        background: #f0f2f5;
-        color: #111b21;
-        transition: background 0.2s, color 0.2s;
-    }
-    body.dark {
-        background: #0b141a;
-        color: #e9edef;
-    }
-    .settings-window {
-        max-width: 700px;
-        margin: 30px auto;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        background: #ffffff;
-        overflow: hidden;
-    }
-    body.dark .settings-window {
-        background: #1f2c34;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-    .nav-tabs {
-        border-bottom: 1px solid #e0e0e0;
-    }
-    body.dark .nav-tabs {
-        border-bottom: 1px solid #2a3942;
-    }
-    .nav-tabs .nav-link {
-        color: #666;
-        border: none;
-        padding: 12px 16px;
-        font-weight: 500;
-    }
-    body.dark .nav-tabs .nav-link {
-        color: #8696a0;
-    }
-    .nav-tabs .nav-link.active {
-        color: #00a884;
-        background: transparent;
-        border-bottom: 3px solid #00a884;
-    }
-    .avatar-grid {
-        display: flex;
-        gap: 12px;
-        margin-top: 8px;
-        flex-wrap: wrap;
-    }
-    .avatar-item {
-        width: 55px;
-        height: 55px;
-        border-radius: 50%;
-        cursor: pointer;
-        border: 3px solid transparent;
-        transition: transform 0.1s, border-color 0.2s;
-        background-color: #f0f2f5;
-    }
-    body.dark .avatar-item {
-        background-color: #2a3942;
-    }
-    .avatar-item.selected {
-        border-color: #00a884;
-        transform: scale(1.08);
-    }
-    .form-control, .form-select {
-        background: #fff;
-        color: #111;
-        border: 1px solid #e0e0e0;
-    }
-    body.dark .form-control, body.dark .form-select {
-        background: #2a3942;
-        color: #e9edef;
-        border: 1px solid #2a3942;
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: #00a884;
-        box-shadow: 0 0 0 0.25rem rgba(0, 168, 132, 0.25);
-        background: #fff;
-        color: #111;
-    }
-    body.dark .form-control:focus, body.dark .form-select:focus {
-        background: #2a3942;
-        color: #e9edef;
-    }
-    .text-muted-custom {
-        color: #666;
-    }
-    body.dark .text-muted-custom {
-        color: #8696a0;
-    }
-</style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-<div class="container px-2">
-    <div class="settings-window">
-        <div class="p-3 d-flex align-items-center" style="background: #00a884; color: white;">
-            <a href="/dashboard" class="text-white me-3 fs-5"><i class="fas fa-arrow-left"></i></a>
-            <h5 class="mb-0 fw-bold">Account Settings</h5>
+        body {
+            background: var(--bg);
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+            padding-bottom: 80px;
+        }
+
+        .settings-header {
+            background: linear-gradient(135deg, #00a884 0%, #075e54 100%);
+            color: white;
+            padding: 30px 20px 60px;
+            text-align: center;
+        }
+
+        .settings-header h2 {
+            font-weight: 700;
+        }
+
+        .settings-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .settings-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            margin: -40px 15px 20px;
+            padding: 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        .section-header {
+            padding: 20px 20px 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--primary);
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .setting-item:hover {
+            background: rgba(0,168,132,0.05);
+        }
+
+        .setting-item:active {
+            background: rgba(0,168,132,0.1);
+        }
+
+        .setting-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .setting-icon.blue { background: rgba(30,136,229,0.1); color: #1e88e5; }
+        .setting-icon.green { background: rgba(0,168,132,0.1); color: #00a884; }
+        .setting-icon.orange { background: rgba(255,112,67,0.1); color: #ff7043; }
+        .setting-icon.purple { background: rgba(171,71,188,0.1); color: #ab47bc; }
+        .setting-icon.red { background: rgba(229,57,53,0.1); color: #e53935; }
+        .setting-icon.gray { background: rgba(108,117,125,0.1); color: #6c757d; }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-info h4 {
+            font-size: 15px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .setting-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 2px 0 0;
+        }
+
+        .setting-arrow {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            margin-left: 10px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ccc;
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        input:checked + .toggle-slider {
+            background: var(--primary);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        .btn-back {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            width: calc(100% - 30px);
+            margin: 0 15px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-back:hover {
+            background: var(--bg);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--card-bg);
+            display: flex;
+            padding: 6px;
+            border-top: 1px solid var(--border);
+            z-index: 300;
+        }
+
+        .nav-btn {
+            flex: 1;
+            text-align: center;
+            background: none;
+            border: none;
+            padding: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .nav-btn i {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .nav-btn.active {
+            color: var(--primary);
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+        }
+
+        .toast-msg {
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: toastIn 0.3s ease;
+        }
+
+        .toast-msg.success { background: var(--primary); }
+        .toast-msg.error { background: var(--danger); }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            background: var(--card-bg);
+            color: var(--text);
+            border: none;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border);
+            padding: 20px;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border);
+            padding: 15px 20px;
+        }
+
+        .form-control-dark {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .form-control-dark:focus {
+            background: var(--bg);
+            border-color: var(--primary);
+            color: var(--text);
+            box-shadow: 0 0 0 3px rgba(0,168,132,0.1);
+        }
+
+        .btn-modal-primary {
+            background: linear-gradient(135deg, #00a884, #075e54);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .btn-modal-danger {
+            background: var(--danger);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: white;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .settings-card {
+                margin: -40px 10px 20px;
+            }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Header -->
+    <div class="settings-header">
+        <h2><i class="fas fa-cog"></i> Settings</h2>
+        <p>Manage your account and preferences</p>
+    </div>
+
+    <!-- Settings Card -->
+    <div class="settings-card">
+        <!-- Account Section -->
+        <div class="section-header"><i class="fas fa-user-shield"></i> Account</div>
+
+        <a href="/profile" class="setting-item">
+            <div class="setting-icon blue"><i class="fas fa-user-edit"></i></div>
+            <div class="setting-info">
+                <h4>Edit Profile</h4>
+                <p>Name, username, avatar, bio, language</p>
+            </div>
+            <i class="fas fa-chevron-right setting-arrow"></i>
+        </a>
+
+        <div class="setting-item" onclick="showPasswordModal()">
+            <div class="setting-icon green"><i class="fas fa-key"></i></div>
+            <div class="setting-info">
+                <h4>Change Password</h4>
+                <p>Update your account password</p>
+            </div>
+            <i class="fas fa-chevron-right setting-arrow"></i>
         </div>
 
-        <ul class="nav nav-tabs justify-content-center" id="settingsTabs" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#editProfileTab" type="button"><i class="fas fa-user-circle me-1"></i> Profile</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#chatSettingsTab" type="button"><i class="fas fa-sliders-h me-1"></i> Chat</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#securityTab" type="button"><i class="fas fa-shield-alt me-1"></i> Security</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#languageTab" type="button"><i class="fas fa-language me-1"></i> Language</button>
-            </li>
-        </ul>
+        <!-- Preferences Section -->
+        <div class="section-header"><i class="fas fa-sliders-h"></i> Preferences</div>
 
-        <div class="tab-content p-4" id="settingsTabsContent">
-            <div class="tab-pane fade show active" id="editProfileTab" role="tabpanel">
-                <form id="profileForm">
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Choose System Avatar</label>
-                        <div class="avatar-grid">
-                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Felix" class="avatar-item {% if user.avatar == 'avatar1' or not user.avatar %}selected{% endif %}" data-av="avatar1">
-                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Aneka" class="avatar-item {% if user.avatar == 'avatar2' %}selected{% endif %}" data-av="avatar2">
-                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Jack" class="avatar-item {% if user.avatar == 'avatar3' %}selected{% endif %}" data-av="avatar3">
-                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Luna" class="avatar-item {% if user.avatar == 'avatar4' %}selected{% endif %}" data-av="avatar4">
-                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Milo" class="avatar-item {% if user.avatar == 'avatar5' %}selected{% endif %}" data-av="avatar5">
+        <div class="setting-item">
+            <div class="setting-icon purple"><i class="fas fa-moon"></i></div>
+            <div class="setting-info">
+                <h4>Dark Mode</h4>
+                <p>Switch between light and dark theme</p>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="themeToggle" {% if user.theme == 'dark' %}checked{% endif %} onchange="toggleTheme()">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <div class="setting-item" onclick="showNotificationsModal()">
+            <div class="setting-icon orange"><i class="fas fa-bell"></i></div>
+            <div class="setting-info">
+                <h4>Notifications</h4>
+                <p>Message alerts and sound settings</p>
+            </div>
+            <i class="fas fa-chevron-right setting-arrow"></i>
+        </div>
+
+        <!-- Tools Section -->
+        <div class="section-header"><i class="fas fa-tools"></i> Tools</div>
+
+        <div class="setting-item" onclick="createTestUsers()">
+            <div class="setting-icon green"><i class="fas fa-user-plus"></i></div>
+            <div class="setting-info">
+                <h4>Create Test Users</h4>
+                <p>Add sample users (Alice, Bob, etc.)</p>
+            </div>
+            <i class="fas fa-chevron-right setting-arrow"></i>
+        </div>
+
+        <!-- Danger Section -->
+        <div class="section-header" style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Danger Zone</div>
+
+        <div class="setting-item" onclick="confirmLogout()">
+            <div class="setting-icon gray"><i class="fas fa-sign-out-alt"></i></div>
+            <div class="setting-info">
+                <h4>Logout</h4>
+                <p>Sign out of your account</p>
+            </div>
+            <i class="fas fa-chevron-right setting-arrow"></i>
+        </div>
+
+        <div class="setting-item" onclick="showDeleteModal()">
+            <div class="setting-icon red"><i class="fas fa-trash-alt"></i></div>
+            <div class="setting-info">
+                <h4 style="color: var(--danger);">Delete Account</h4>
+                <p>Permanently delete your account and all data</p>
+            </div>
+            <i class="fas fa-chevron-right setting-arrow"></i>
+        </div>
+    </div>
+
+    <a href="/dashboard" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Back to Chat
+    </a>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <button class="nav-btn" onclick="location.href='/dashboard'"><i class="fas fa-comment-dots"></i><span>Chats</span></button>
+        <button class="nav-btn active" onclick="location.href='/settings'"><i class="fas fa-cog"></i><span>Settings</span></button>
+        <button class="nav-btn" onclick="location.href='/profile'"><i class="fas fa-user"></i><span>Profile</span></button>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="passwordModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-key"></i> Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="{% if user.theme == 'dark' %}filter: invert(1);{% endif %}"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changePasswordForm">
+                        <div class="mb-3">
+                            <label style="font-size: 13px; color: var(--text-muted);">Current Password</label>
+                            <input type="password" id="currentPass" class="form-control-dark form-control" required>
                         </div>
-                        <input type="hidden" id="userAvatar" value="{{ user.avatar or 'avatar1' }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Full Display Name</label>
-                        <input type="text" id="fullName" class="form-control" value="{{ user.full_name or '' }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Username</label>
-                        <input type="text" id="username" class="form-control" value="{{ user.username or '' }}" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Custom Bio</label>
-                        <textarea id="bio" class="form-control" rows="2" placeholder="Write a bio...">{{ user.bio or '' }}</textarea>
-                    </div>
-                    <button type="submit" class="btn text-white w-100 fw-bold" style="background: #00a884;">Save Changes</button>
-                </form>
-            </div>
-
-            <div class="tab-pane fade" id="chatSettingsTab" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h6 class="mb-0 fw-bold">Dark Mode Layout</h6>
-                        <small class="text-muted-custom">Invert UI colors to reduce night strain</small>
-                    </div>
-                    <div class="form-check form-switch fs-4">
-                        <input class="form-check-input" type="checkbox" id="themeToggler">
-                    </div>
+                        <div class="mb-3">
+                            <label style="font-size: 13px; color: var(--text-muted);">New Password</label>
+                            <input type="password" id="newPass" class="form-control-dark form-control" required>
+                            <small style="color: var(--text-muted);">Minimum 4 characters</small>
+                        </div>
+                        <div class="mb-3">
+                            <label style="font-size: 13px; color: var(--text-muted);">Confirm New Password</label>
+                            <input type="password" id="confirmPass" class="form-control-dark form-control" required>
+                        </div>
+                        <button type="submit" class="btn-modal-primary w-100">Update Password</button>
+                    </form>
                 </div>
-                <hr style="background-color: var(--bdr);">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Dynamic Font Sizing</label>
-                    <select class="form-select" id="fontSizeChanger">
-                        <option value="14px">Small Sizing</option>
-                        <option value="16px" selected>Regular Baseline</option>
-                        <option value="19px">Large Display</option>
-                        <option value="22px">Extra Enlarged</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="tab-pane fade" id="securityTab" role="tabpanel">
-                <form id="passForm" class="mb-4">
-                    <h6 class="fw-bold mb-3">Update Account Password</h6>
-                    <div class="mb-2">
-                        <input type="password" id="currPass" class="form-control" placeholder="Current Password" required>
-                    </div>
-                    <div class="mb-3">
-                        <input type="password" id="newPass" class="form-control" placeholder="New Secure Password" required>
-                    </div>
-                    <button type="submit" class="btn btn-sm text-white fw-bold" style="background: #00a884;">Update Password</button>
-                </form>
-                <hr style="background-color: var(--bdr);">
-                <div class="mt-4">
-                    <h6 class="fw-bold mb-1">Auto-Delete Messages</h6>
-                    <small class="text-muted-custom d-block mb-3">Automatically purges personal communication records after the selected interval.</small>
-                    <input type="range" class="form-range" min="0" max="3" step="1" id="autoDeleteSlider" value="0">
-                    <div class="d-flex justify-content-between text-muted small px-1">
-                        <span>Disabled</span>
-                        <span>1 Day</span>
-                        <span>2 Days</span>
-                        <span>3 Days</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="tab-pane fade" id="languageTab" role="tabpanel">
-                <h6 class="fw-bold mb-3">Select Application Language</h6>
-                <select class="form-select" id="langSelector">
-                    <option value="en" selected>English</option>
-                    <option value="as">অসমীয়া (Assamese)</option>
-                    <option value="bn">বাংলা (Bengali)</option>
-                    <option value="hi">हिन्दी (Hindi)</option>
-                </select>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-    // Handle Interactive Avatar Choice Mechanics
-    $('.avatar-item').on('click', function() {
-        $('.avatar-item').removeClass('selected');
-        $(this).addClass('selected');
-        $('#userAvatar').val($(this).data('av'));
-    });
+    <!-- Notifications Modal -->
+    <div class="modal fade" id="notificationsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-bell"></i> Notifications</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="{% if user.theme == 'dark' %}filter: invert(1);{% endif %}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-3" style="background: var(--bg); border-radius: 10px;">
+                        <div>
+                            <h6 style="margin: 0;">Sound</h6>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Play sound for new messages</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="soundToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-3" style="background: var(--bg); border-radius: 10px;">
+                        <div>
+                            <h6 style="margin: 0;">Desktop</h6>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Show desktop notifications</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="desktopToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-modal-primary w-100" onclick="saveNotificationSettings()">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // Save Profile Configuration Ajax Handler
-    $('#profileForm').on('submit', function(e) {
-        e.preventDefault();
-        $.post('/api/users/update_profile', {
-            full_name: $('#fullName').val(),
-            username: $('#username').val(),
-            bio: $('#bio').val(),
-            avatar: $('#userAvatar').val()
-        }, function(data) {
-            if(data.success) {
-                alert('Success: ' + data.message);
-                window.location.reload();
+    <!-- Delete Account Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--danger); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Delete Account</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p style="color: var(--danger); font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> Warning: This action cannot be undone!</p>
+                    <p style="color: var(--text-muted); font-size: 14px;">All your messages, chats, and account data will be permanently deleted.</p>
+                    <label style="font-size: 13px; color: var(--text-muted);">Type <strong>DELETE</strong> to confirm:</label>
+                    <input type="text" id="deleteConfirm" class="form-control-dark form-control mt-2" placeholder="DELETE">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+                    <button class="btn-modal-danger" onclick="deleteAccount()">Delete Forever</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show Toast
+        function showToast(message, type = 'success') {
+            const toast = $(`<div class="toast-msg ${type}">${message}</div>`);
+            $('#toastContainer').append(toast);
+            setTimeout(() => {
+                toast.fadeOut(300, function() { $(this).remove(); });
+            }, 3000);
+        }
+
+        // Theme
+        function toggleTheme() {
+            const isDark = $('#themeToggle').is(':checked');
+            if (isDark) {
+                document.body.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
             } else {
-                alert('Profile update fault: ' + data.error);
+                document.body.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+            // Save to server via form data
+            const formData = new FormData();
+            formData.append('theme', isDark ? 'dark' : 'light');
+            $.ajax({
+                url: '/api/users/update_profile',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function() {},
+                error: function() {}
+            });
+        }
+
+        // Load saved theme
+        $(function() {
+            const savedTheme = localStorage.getItem('theme') || '{{ user.theme }}';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+                $('#themeToggle').prop('checked', true);
             }
         });
-    });
 
-    // Save Password Modification Form
-    $('#passForm').on('submit', function(e) {
-        e.preventDefault();
-        $.post('/api/users/change_password', {
-            current_password: $('#currPass').val(),
-            new_password: $('#newPass').val()
-        }, function(data) {
-            if(data.success) {
-                alert(data.message);
-                $('#passForm')[0].reset();
-            } else {
-                alert('Error editing password: ' + data.error);
+        // Notifications
+        function showNotificationsModal() {
+            $('#soundToggle').prop('checked', localStorage.getItem('soundEnabled') === 'true');
+            $('#desktopToggle').prop('checked', localStorage.getItem('desktopEnabled') === 'true');
+            new bootstrap.Modal(document.getElementById('notificationsModal')).show();
+        }
+
+        function saveNotificationSettings() {
+            localStorage.setItem('soundEnabled', $('#soundToggle').is(':checked'));
+            localStorage.setItem('desktopEnabled', $('#desktopToggle').is(':checked'));
+            bootstrap.Modal.getInstance(document.getElementById('notificationsModal')).hide();
+            showToast('Notification settings saved!');
+        }
+
+        // Change Password
+        function showPasswordModal() {
+            new bootstrap.Modal(document.getElementById('passwordModal')).show();
+        }
+
+        $('#changePasswordForm').on('submit', function(e) {
+            e.preventDefault();
+            if ($('#newPass').val() !== $('#confirmPass').val()) {
+                showToast('New passwords do not match!', 'error');
+                return;
             }
+            if ($('#newPass').val().length < 4) {
+                showToast('Password must be at least 4 characters', 'error');
+                return;
+            }
+
+            // Use form data to match existing API
+            const formData = new FormData();
+            formData.append('current_password', $('#currentPass').val());
+            formData.append('new_password', $('#newPass').val());
+
+            $.ajax({
+                url: '/api/users/change_password',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        showToast('Password changed successfully!');
+                        bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+                        $('#changePasswordForm')[0].reset();
+                    } else {
+                        showToast(response.error || 'Failed to change password', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    const err = xhr.responseJSON ? xhr.responseJSON.error : 'Server error';
+                    showToast(err, 'error');
+                }
+            });
         });
-    });
 
-    // Theme Switch Layout Controls
-    $('#themeToggler').on('change', function() {
-        if(this.checked) {
-            $('body').addClass('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            $('body').removeClass('dark');
-            localStorage.setItem('theme', 'light');
+        // Delete Account
+        function showDeleteModal() {
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
-    });
 
-    // Typography Layout Scaler Engine
-    $('#fontSizeChanger').on('change', function() {
-        let selectedSize = $(this).val();
-        $('body').css('font-size', selectedSize);
-        localStorage.setItem('font-size', selectedSize);
-    });
+        function deleteAccount() {
+            if ($('#deleteConfirm').val() === 'DELETE') {
+                if (confirm('Are you absolutely sure? This cannot be undone!')) {
+                    $.post('/api/delete_account', function(response) {
+                        if (response.success) {
+                            showToast('Account deleted. Redirecting...');
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 1500);
+                        } else {
+                            showToast(response.error || 'Failed to delete account', 'error');
+                        }
+                    });
+                }
+            } else {
+                showToast('Please type DELETE to confirm', 'error');
+            }
+        }
 
-    // Save Message Retention Settings Locally
-    $('#autoDeleteSlider').on('change', function() {
-        localStorage.setItem('msg-retention', $(this).val());
-    });
+        // Create Test Users
+        function createTestUsers() {
+            if (confirm('Create sample users to chat with? (Alice, Bob, Charlie, etc.)')) {
+                fetch('/api/create_test_users')
+                    .then(r => r.json())
+                    .then(data => {
+                        showToast(data.message);
+                    })
+                    .catch(() => {
+                        showToast('Failed to create test users', 'error');
+                    });
+            }
+        }
 
-    // Localized Target Language Configuration Change Routine
-    $('#langSelector').on('change', function() {
-        localStorage.setItem('app-lang', $(this).val());
-        alert('System application preferred language set to: ' + $(this).val().toUpperCase());
-    });
-
-    // Load Configurations on Startup
-    $(document).ready(function() {
-        if(localStorage.getItem('theme') === 'dark' || $('body').hasClass('dark')) {
-            $('#themeToggler').prop('checked', true);
-            $('body').addClass('dark');
+        // Logout
+        function confirmLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/logout';
+            }
         }
-        if(localStorage.getItem('font-size')) {
-            let size = localStorage.getItem('font-size');
-            $('#fontSizeChanger').val(size);
-            $('body').css('font-size', size);
-        }
-        if(localStorage.getItem('msg-retention')) {
-            $('#autoDeleteSlider').val(localStorage.getItem('msg-retention'));
-        }
-        if(localStorage.getItem('app-lang')) {
-            $('#langSelector').val(localStorage.getItem('app-lang'));
-        }
-    });
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>
