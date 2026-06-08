@@ -1,7 +1,7 @@
-from flask import Flask, render_template, session, redirect, send_from_directory, jsonify
+from flask import Flask, render_template, session, redirect, send_from_directory
 from config import SECRET_KEY, PORT
 from routes.auth import auth_bp
-from routes.user_routes import user_bp
+from models.user import user_bp  # This is the user blueprint with routes
 from routes.message_routes import msg_bp
 from routes.channel_routes import channel_bp
 from routes.call_routes import call_bp
@@ -14,7 +14,7 @@ app.secret_key = SECRET_KEY
 
 # Register blueprints
 app.register_blueprint(auth_bp)
-app.register_blueprint(user_bp)
+app.register_blueprint(user_bp)  # Register user blueprint from models.user
 app.register_blueprint(msg_bp)
 app.register_blueprint(channel_bp)
 app.register_blueprint(call_bp)
@@ -55,7 +55,7 @@ def dashboard():
 def profile():
     if 'user_id' not in session:
         return redirect('/')
-    # FIX: Query database for user data instead of relying on session only
+    # FIX: Query database for user data
     user = db['users'].find_one({'user_id': session['user_id']})
     if not user:
         return redirect('/')
