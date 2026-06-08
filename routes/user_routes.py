@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from functools import wraps
-from models.user import search_users, get_user, update_profile
+from config import db  # FIX: use db directly from config
 
 user_bp = Blueprint('user', __name__)
 
@@ -14,33 +14,45 @@ def login_required(f):
 
 @user_bp.route('/api/users/search')
 @login_required
-def search():
-    q = request.args.get('q', '')
-    return jsonify(search_users(q, session['user_id']))
+def search_users():
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify([])
+    regex = {'$regex': q, '$options': 'i'}
+    users = db['users'].find({
+        '$and': [
+            {'$or': [{'username': regex}, {'full_name': regex}]},
+            {'user_id': {'$ne': session['user_id']}}
+        ]
+    }).limit(20)
+    result = []
+    for u in users:
+        result.append({
+            'user_id':   u['user_id'],
+            'username':  u.get('username', ''),
+            'full_name': u.get('full_name', u.get('username', ''))
+        })
+    return jsonify(result)
 
 @user_bp.route('/api/users/profile/<int:user_id>')
 @login_required
-def profile(user_id):
-    user = get_user(user_id)
-    if user:
-        return jsonify({
-            'user_id': user['user_id'],
-            'username': user['username'],
-            'full_name': user.get('full_name', user['username']),
-            'bio': user.get('bio', 'No bio'),
-            'joined': user.get('created_at')
-        })
-    return jsonify({"error": "Not found"}), 404
+def get_profile(user_id):
+    user = db['users'].find_one({'user_id': user_id})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({
+        'user_id':   user['user_id'],
+        'username':  user.get('username', ''),
+        'full_name': user.get('full_name', user.get('username', '')),
+        'bio':       user.get('bio', 'Hi there!')
+    })
 
-@user_bp.route('/api/users/update_profile', methods=['POST'])
+@user_bp.route('/api/users/me')
 @login_required
-def update():
-    data = request.json
-    update_profile(
-        session['user_id'],
-        data.get('full_name'),
-        data.get('bio')
-    )
-    if data.get('full_name'):
-        session['full_name'] = data.get('full_name')
-    return jsonify({"success": True})
+def get_me():
+    return jsonify({
+        'user_id':   session['user_id'],
+        'username':  session.get('username', ''),
+        'full_name': session.get('full_name', '')
+    })
+    
