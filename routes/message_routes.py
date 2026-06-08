@@ -31,7 +31,15 @@ def get(user_id):
     msgs = get_private_messages(session['user_id'], user_id)
     return jsonify(msgs)
 
+# /full/ route — same as base but named so frontend file-message rendering works
+@msg_bp.route('/api/messages/full/<int:user_id>')
+@login_required
+def get_full(user_id):
+    msgs = get_private_messages(session['user_id'], user_id)
+    return jsonify(msgs)
+
 @msg_bp.route('/api/chats')
 @login_required
 def chats():
     return jsonify(get_chat_list(session['user_id']))
+    
