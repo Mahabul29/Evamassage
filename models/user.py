@@ -1,65 +1,66 @@
-import secrets
-import hashlib
-from datetime import datetime
+from flask import Blueprint, request, jsonify, session
 from config import users
+import hashlib
+
+user_bp = Blueprint('user_bp', __name__)
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def create_user(username, password, full_name):
-    if len(username) < 3 or len(password) < 4:
-        return None, "Invalid input"
+@user_bp.route('/api/users/update_profile', methods=['POST'])
+def update_profile():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
     
-    if users.find_one({'username': username}):
-        return None, "Username exists"
+    user_id = session['user_id']
+    full_name = request.form.get('full_name', '').strip()
+    username = request.form.get('username', '').strip().lower()
+    bio = request.form.get('bio', '').strip()
+    avatar = request.form.get('avatar', 'avatar1')
     
-    user_id = secrets.randbelow(1000000000)
-    user = {
-        'user_id': user_id,
-        'username': username.lower(),
-        'password': hash_password(password),
-        'full_name': full_name or username,
-        'bio': '',
-        'created_at': datetime.now()
-    }
-    users.insert_one(user)
-    return user, "Success"
+    if not username or len(username) < 3:
+        return jsonify({'success': False, 'error': 'Username must be at least 3 characters.'})
+    
+    # Verify username uniqueness
+    existing_user = users.find_one({'username': username})
+    if existing_user and existing_user['user_id'] != user_id:
+        return jsonify({'success': False, 'error': 'Username is already taken.'})
+    
+    # Update Database Record
+    users.update_one(
+        {'user_id': user_id},
+        {'$set': {
+            'full_name': full_name,
+            'username': username,
+            'bio': bio,
+            'avatar': avatar
+        }}
+    )
+    
+    # Update current session states
+    session['username'] = username
+    session['full_name'] = full_name
+    session['avatar'] = avatar
+    
+    return jsonify({'success': True, 'message': 'Profile updated successfully!'})
 
-def authenticate_user(username, password):
-    user = users.find_one({
-        'username': username.lower(),
-        'password': hash_password(password)
-    })
-    return user
 
-def get_user(user_id):
-    return users.find_one({'user_id': user_id})
-
-def search_users(query, current_user_id):
-    if len(query) < 2:
-        return []
+@user_bp.route('/api/users/change_password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    user_id = session['user_id']
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
     
-    results = users.find({
-        'user_id': {'$ne': current_user_id},
-        '$or': [
-            {'username': {'$regex': query, '$options': 'i'}},
-            {'full_name': {'$regex': query, '$options': 'i'}}
-        ]
-    }).limit(20)
+    user = users.find_one({'user_id': user_id})
+    if not user or user['password'] != hash_password(current_password):
+        return jsonify({'success': False, 'error': 'Current password matching failed.'})
+        
+    if len(new_password) < 4:
+        return jsonify({'success': False, 'error': 'New password must be at least 4 characters long.'})
+        
+    users.update_one({'user_id': user_id}, {'$set': {'password': hash_password(new_password)}})
+    return jsonify({'success': True, 'message': 'Password updated successfully!'})
     
-    return [{
-        'user_id': u['user_id'],
-        'username': u['username'],
-        'full_name': u.get('full_name', u['username'])
-    } for u in results]
-
-def update_profile(user_id, full_name=None, bio=None):
-    update = {}
-    if full_name:
-        update['full_name'] = full_name
-    if bio is not None:
-        update['bio'] = bio
-    
-    if update:
-        users.update_one({'user_id': user_id}, {'$set': update})
-    return True
