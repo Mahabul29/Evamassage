@@ -1,543 +1,273 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Settings - EvaMassage</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .settings-container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .settings-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            overflow: hidden;
-            animation: fadeInUp 0.4s ease-out;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .settings-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px 20px;
-            text-align: center;
-        }
-        
-        .settings-header i {
-            font-size: 3rem;
-            margin-bottom: 10px;
-        }
-        
-        .settings-header h3, .settings-header h4 {
-            margin: 0;
-        }
-        
-        .settings-body {
-            padding: 10px 0;
-        }
-        
-        .setting-item {
-            padding: 15px 20px;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .setting-item:hover {
-            background: #f8f9fa;
-        }
-        
-        .setting-item:active {
-            background: #e9ecef;
-        }
-        
-        .setting-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .setting-icon {
-            width: 45px;
-            height: 45px;
-            background: #f0f0f0;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #667eea;
-            font-size: 1.2rem;
-        }
-        
-        .setting-info h4 {
-            font-size: 1rem;
-            margin: 0;
-            color: #333;
-        }
-        
-        .setting-info p {
-            font-size: 0.75rem;
-            color: #6c757d;
-            margin: 3px 0 0;
-        }
-        
-        .setting-arrow {
-            color: #adb5bd;
-            font-size: 0.8rem;
-        }
-        
-        .btn-back {
-            background: rgba(255,255,255,0.9);
-            color: #667eea;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        
-        .btn-back:hover {
-            background: white;
-            transform: translateY(-2px);
-        }
-        
-        .theme-option, .language-option {
-            padding: 15px;
-            margin: 5px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.2s;
-        }
-        
-        .theme-option:hover, .language-option:hover {
-            border-color: #667eea;
-            background: #f8f9fa;
-        }
-        
-        .modal-content {
-            border-radius: 20px;
-        }
-        
-        .modal-header {
-            border-bottom: none;
-            padding: 20px 20px 0;
-        }
-        
-        .modal-body {
-            padding: 20px;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 25px;
-            padding: 10px;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-1px);
-        }
-        
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
-            .settings-container {
-                max-width: 100%;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="settings-container">
-        <!-- Profile Header Card -->
-        <div class="settings-card">
-            <div class="settings-header">
-                <i class="fas fa-user-circle"></i>
-                <h3 class="mt-2">{{ user.full_name }}</h3>
-                <p class="mb-0">@{{ user.username }}</p>
-            </div>
-        </div>
-        
-        <!-- Account Settings -->
-        <div class="settings-card">
-            <div class="settings-header">
-                <i class="fas fa-cog"></i>
-                <h4>Account Settings</h4>
-            </div>
-            <div class="settings-body">
-                <div class="setting-item" onclick="location.href='/profile'">
-                    <div class="setting-left">
-                        <div class="setting-icon">
-                            <i class="fas fa-user-edit"></i>
-                        </div>
-                        <div class="setting-info">
-                            <h4>Edit Profile</h4>
-                            <p>Update your name, bio and photo</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right setting-arrow"></i>
-                </div>
-                
-                <div class="setting-item" onclick="showChangePasswordModal()">
-                    <div class="setting-left">
-                        <div class="setting-icon">
-                            <i class="fas fa-key"></i>
-                        </div>
-                        <div class="setting-info">
-                            <h4>Change Password</h4>
-                            <p>Update your password</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right setting-arrow"></i>
-                </div>
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
 
-                <div class="setting-item" onclick="confirmLogout()">
-                    <div class="setting-left">
-                        <div class="setting-icon" style="background:#fff0f0; color:#dc3545;">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </div>
-                        <div class="setting-info">
-                            <h4 style="color:#dc3545;">Logout</h4>
-                            <p>Sign out of your account</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right setting-arrow"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Preferences -->
-        <div class="settings-card">
-            <div class="settings-header">
-                <i class="fas fa-sliders-h"></i>
-                <h4>Preferences</h4>
-            </div>
-            <div class="settings-body">
-                <div class="setting-item" onclick="showThemeModal()">
-                    <div class="setting-left">
-                        <div class="setting-icon">
-                            <i class="fas fa-palette"></i>
-                        </div>
-                        <div class="setting-info">
-                            <h4>Theme</h4>
-                            <p>Light / Dark mode</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right setting-arrow"></i>
-                </div>
-                
-                <div class="setting-item" onclick="showNotificationsModal()">
-                    <div class="setting-left">
-                        <div class="setting-icon">
-                            <i class="fas fa-bell"></i>
-                        </div>
-                        <div class="setting-info">
-                            <h4>Notifications</h4>
-                            <p>Message alerts and sounds</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right setting-arrow"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Test Users -->
-        <div class="settings-card">
-            <div class="settings-header">
-                <i class="fas fa-users"></i>
-                <h4>Test Users</h4>
-            </div>
-            <div class="settings-body">
-                <div class="setting-item" onclick="createTestUsers()">
-                    <div class="setting-left">
-                        <div class="setting-icon" style="background: #e8f5e9; color: #4caf50;">
-                            <i class="fas fa-user-plus"></i>
-                        </div>
-                        <div class="setting-info">
-                            <h4>Create Test Users</h4>
-                            <p>Add sample users to chat with</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right setting-arrow"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Danger Zone -->
-        <div class="settings-card">
-            <div class="settings-header" style="background: #dc3545;">
-                <i class="fas fa-exclamation-triangle"></i>
-                <h4>Danger Zone</h4>
-            </div>
-            <div class="settings-body">
-                <div class="setting-item" onclick="showDeleteModal()">
-                    <div class="setting-left">
-                        <div class="setting-icon" style="background: #fee; color: #dc3545;">
-                            <i class="fas fa-trash-alt"></i>
-                        </div>
-                        <div class="setting-info">
-                            <h4 style="color: #dc3545;">Delete Account</h4>
-                            <p>Permanently delete your account and all data</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right setting-arrow"></i>
-                </div>
-            </div>
-        </div>
-        
-        <button class="btn-back" onclick="location.href='/dashboard'">
-            <i class="fas fa-arrow-left"></i> Back to Chat
-        </button>
-    </div>
-    
-    <!-- Theme Modal -->
-    <div class="modal fade" id="themeModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Choose Theme</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="theme-option" onclick="setTheme('light')">
-                                <i class="fas fa-sun fa-2x"></i>
-                                <p class="mt-2 mb-0">Light</p>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="theme-option" onclick="setTheme('dark')">
-                                <i class="fas fa-moon fa-2x"></i>
-                                <p class="mt-2 mb-0">Dark</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Notifications Modal -->
-    <div class="modal fade" id="notificationsModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Notifications</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="soundToggle">
-                        <label class="form-check-label">Play sound for new messages</label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="desktopToggle">
-                        <label class="form-check-label">Show desktop notifications</label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" onclick="saveNotificationSettings()">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Change Password Modal -->
-    <div class="modal fade" id="passwordModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Change Password</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="changePasswordForm">
-                        <div class="mb-3">
-                            <label>Current Password</label>
-                            <input type="password" id="currentPass" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label>New Password</label>
-                            <input type="password" id="newPass" class="form-control" required>
-                            <small class="text-muted">Minimum 4 characters</small>
-                        </div>
-                        <div class="mb-3">
-                            <label>Confirm New Password</label>
-                            <input type="password" id="confirmPass" class="form-control" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Update Password</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Delete Account Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">Delete Account</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Warning: This action cannot be undone!</p>
-                    <p>All your messages and data will be permanently deleted.</p>
-                    <label>Type <strong>DELETE</strong> to confirm:</label>
-                    <input type="text" id="deleteConfirm" class="form-control mt-2" placeholder="DELETE">
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-danger" onclick="deleteAccount()">Delete Forever</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Logout
-        function confirmLogout() {
-            if (confirm('Are you sure you want to logout?')) {
-                window.location.href = '/logout';
-            }
-        }
+{% block content %}
+<style>
+    body {
+        background: #f0f2f5;
+        color: #111b21;
+        transition: background 0.2s, color 0.2s;
+    }
+    body.dark {
+        background: #0b141a;
+        color: #e9edef;
+    }
+    .settings-window {
+        max-width: 700px;
+        margin: 30px auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        background: #ffffff;
+        overflow: hidden;
+    }
+    body.dark .settings-window {
+        background: #1f2c34;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .nav-tabs .nav-link {
+        color: #666;
+        border: none;
+        padding: 12px 16px;
+    }
+    body.dark .nav-tabs .nav-link {
+        color: #8696a0;
+    }
+    .nav-tabs .nav-link.active {
+        color: #00a884;
+        background: transparent;
+        border-bottom: 3px solid #00a884;
+    }
+    .avatar-grid {
+        display: flex;
+        gap: 10px;
+        margin-top: 5px;
+    }
+    .avatar-item {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition: transform 0.1s;
+    }
+    .avatar-item.selected {
+        border-color: #00a884;
+        transform: scale(1.05);
+    }
+    .form-control, .form-select {
+        background: #fff;
+        color: #111;
+        border: 1px solid #e0e0e0;
+    }
+    body.dark .form-control, body.dark .form-select {
+        background: #2a3942;
+        color: #e9edef;
+        border: 1px solid #2a3942;
+    }
+</style>
 
-        // Theme
-        function showThemeModal() {
-            new bootstrap.Modal(document.getElementById('themeModal')).show();
-        }
-        
-        function setTheme(theme) {
-            localStorage.setItem('theme', theme);
-            if (theme === 'dark') {
-                document.body.style.background = '#1a1a2e';
+<div class="container px-2">
+    <div class="settings-window">
+        <div class="p-3 d-flex align-items-center" style="background: #00a884; color: white;">
+            <a href="/dashboard" class="text-white me-3 fs-5"><i class="fas fa-arrow-left"></i></a>
+            <h5 class="mb-0 fw-bold">Settings & Account Control</h5>
+        </div>
+
+        <ul class="nav nav-tabs justify-content-center" id="settingsTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#editProfileTab" type="button"><i class="fas fa-user-circle me-1"></i> Profile</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#chatSettingsTab" type="button"><i class="fas fa-sliders-h me-1"></i> Chat</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#securityTab" type="button"><i class="fas fa-shield-alt me-1"></i> Security</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#languageTab" type="button"><i class="fas fa-language me-1"></i> Language</button>
+            </li>
+        </ul>
+
+        <div class="tab-content p-4" id="settingsTabsContent">
+            <div class="tab-pane fade show active" id="editProfileTab" role="tabpanel">
+                <form id="profileForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Choose System Avatar</label>
+                        <div class="avatar-grid">
+                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Felix" class="avatar-item {% if user.avatar == 'avatar1' or not user.avatar %}selected{% endif %}" data-av="avatar1">
+                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Aneka" class="avatar-item {% if user.avatar == 'avatar2' %}selected{% endif %}" data-av="avatar2">
+                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Jack" class="avatar-item {% if user.avatar == 'avatar3' %}selected{% endif %}" data-av="avatar3">
+                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Luna" class="avatar-item {% if user.avatar == 'avatar4' %}selected{% endif %}" data-av="avatar4">
+                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Milo" class="avatar-item {% if user.avatar == 'avatar5' %}selected{% endif %}" data-av="avatar5">
+                        </div>
+                        <input type="hidden" id="userAvatar" value="{{ user.avatar or 'avatar1' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Full Display Name</label>
+                        <input type="text" id="fullName" class="form-control" value="{{ user.full_name or '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" id="username" class="form-control" value="{{ user.username or '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Custom Bio</label>
+                        <textarea id="bio" class="form-control" rows="2" placeholder="Tell us about yourself...">{{ user.bio or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn text-white w-100" style="background: #00a884;">Save Profile Modifications</button>
+                </form>
+            </div>
+
+            <div class="tab-pane fade" id="chatSettingsTab" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h6 class="mb-0 fw-bold">Dark Mode Layout</h6>
+                        <small class="text-muted">Invert core colors to ease night strains</small>
+                    </div>
+                    <div class="form-check form-switch fs-4">
+                        <input class="form-check-input" type="checkbox" id="themeToggler">
+                    </div>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Dynamic Font Sizing</label>
+                    <select class="form-select" id="fontSizeChanger">
+                        <option value="14px">Small Sizing</option>
+                        <option value="16px" selected>Regular Baseline</option>
+                        <option value="19px">Large Display</option>
+                        <option value="22px">Extra Enlarged</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="securityTab" role="tabpanel">
+                <form id="passForm" class="mb-4">
+                    <h6 class="fw-bold mb-3">Update Account Password</h6>
+                    <div class="mb-2">
+                        <input type="password" id="currPass" class="form-control" placeholder="Current Password" required>
+                    </div>
+                    <div class="mb-2">
+                        <input type="password" id="newPass" class="form-control" placeholder="New Secure Password" required>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-dark">Commit Password Change</button>
+                </form>
+                <hr>
+                <div class="mt-3">
+                    <h6 class="fw-bold mb-1">Auto-Delete Shared Messages</h6>
+                    <small class="text-muted d-block mb-3">Automatically purges conversation history clean over set timeline loops.</small>
+                    <input type="range" class="form-range" min="0" max="3" step="1" id="autoDeleteSlider" value="0">
+                    <div class="d-flex justify-content-between text-muted small px-1">
+                        <span>Disabled</span>
+                        <span>1 Day</span>
+                        <span>2 Days</span>
+                        <span>3 Days</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="languageTab" role="tabpanel">
+                <h6 class="fw-bold mb-3">Select System Core Language</h6>
+                <select class="form-select" id="langSelector">
+                    <option value="en" selected>English</option>
+                    <option value="as">অসমীয়া (Assamese)</option>
+                    <option value="bn">বাংলা (Bengali)</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Handle Interactive Avatar Grid
+    $('.avatar-item').on('click', function() {
+        $('.avatar-item').removeClass('selected');
+        $(this).addClass('selected');
+        $('#userAvatar').val($(this).data('av'));
+    });
+
+    // Save Profile Configuration Ajax Form
+    $('#profileForm').on('submit', function(e) {
+        e.preventDefault();
+        $.post('/api/users/update_profile', {
+            full_name: $('#fullName').val(),
+            username: $('#username').val(),
+            bio: $('#bio').val(),
+            avatar: $('#userAvatar').val()
+        }, function(data) {
+            if(data.success) {
+                alert(data.message);
+                window.location.reload();
             } else {
-                document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                alert('Profile update fault: ' + data.error);
             }
-            bootstrap.Modal.getInstance(document.getElementById('themeModal')).hide();
-        }
-        
-        // Notifications
-        function showNotificationsModal() {
-            $('#soundToggle').prop('checked', localStorage.getItem('soundEnabled') === 'true');
-            $('#desktopToggle').prop('checked', localStorage.getItem('desktopEnabled') === 'true');
-            new bootstrap.Modal(document.getElementById('notificationsModal')).show();
-        }
-        
-        function saveNotificationSettings() {
-            localStorage.setItem('soundEnabled', $('#soundToggle').is(':checked'));
-            localStorage.setItem('desktopEnabled', $('#desktopToggle').is(':checked'));
-            bootstrap.Modal.getInstance(document.getElementById('notificationsModal')).hide();
-            alert('Notification settings saved!');
-        }
-        
-        // Change Password
-        function showChangePasswordModal() {
-            new bootstrap.Modal(document.getElementById('passwordModal')).show();
-        }
-        
-        $('#changePasswordForm').on('submit', function(e) {
-            e.preventDefault();
-            if ($('#newPass').val() !== $('#confirmPass').val()) {
-                alert('New passwords do not match!');
-                return;
-            }
-            if ($('#newPass').val().length < 4) {
-                alert('Password must be at least 4 characters');
-                return;
-            }
-            $.ajax({
-                url: '/api/change_password',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ current: $('#currentPass').val(), new: $('#newPass').val() }),
-                success: function(response) {
-                if (response.success) {
-                    alert('Password changed successfully!');
-                    bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
-                    $('#changePasswordForm')[0].reset();
-                } else {
-                    alert('Error: ' + response.error);
-                }
-            }});
         });
-        
-        // Delete Account
-        function showDeleteModal() {
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
-        }
-        
-        function deleteAccount() {
-            if ($('#deleteConfirm').val() === 'DELETE') {
-                if (confirm('Are you absolutely sure? This cannot be undone!')) {
-                    $.post('/api/delete_account', function(response) {
-                        if (response.success) {
-                            window.location.href = '/logout';
-                        }
-                    });
-                }
+    });
+
+    // Save Password Modification Form
+    $('#passForm').on('submit', function(e) {
+        e.preventDefault();
+        $.post('/api/users/change_password', {
+            current_password: $('#currPass').val(),
+            new_password: $('#newPass').val()
+        }, function(data) {
+            if(data.success) {
+                alert(data.message);
+                $('#passForm')[0].reset();
             } else {
-                alert('Please type DELETE to confirm');
+                alert('Error editing password: ' + data.error);
             }
+        });
+    });
+
+    // Theme Switch Logic
+    $('#themeToggler').on('change', function() {
+        if(this.checked) {
+            $('body').addClass('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            $('body').removeClass('dark');
+            localStorage.setItem('theme', 'light');
         }
-        
-        // Create Test Users
-        function createTestUsers() {
-            if (confirm('Create sample users to chat with? (Alice, Bob, Charlie, etc.)')) {
-                fetch('/api/create_test_users')
-                    .then(r => r.json())
-                    .then(data => {
-                        alert(data.message);
-                    });
-            }
+    });
+
+    // Front-End Font Modifier
+    $('#fontSizeChanger').on('change', function() {
+        let selectedSize = $(this).val();
+        $('body').css('font-size', selectedSize);
+        localStorage.setItem('font-size', selectedSize);
+    });
+
+    // Retention Slider State Management
+    $('#autoDeleteSlider').on('change', function() {
+        localStorage.setItem('msg-retention', $(this).val());
+    });
+
+    // Language Change Logic
+    $('#langSelector').on('change', function() {
+        localStorage.setItem('app-lang', $(this).val());
+        alert('Language profile preferred configured to: ' + $(this).val().toUpperCase());
+    });
+
+    // Check Local Browser Store for Configured Custom Preferences
+    $(document).ready(function() {
+        if(localStorage.getItem('theme') === 'dark' || $('body').hasClass('dark')) {
+            $('#themeToggler').prop('checked', true);
+            $('body').addClass('dark');
         }
-        
-        // Load saved theme
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            document.body.style.background = '#1a1a2e';
+        if(localStorage.getItem('font-size')) {
+            let size = localStorage.getItem('font-size');
+            $('#fontSizeChanger').val(size);
+            $('body').css('font-size', size);
         }
-    </script>
-</body>
-</html>
+        if(localStorage.getItem('msg-retention')) {
+            $('#autoDeleteSlider').val(localStorage.getItem('msg-retention'));
+        }
+        if(localStorage.getItem('app-lang')) {
+            $('#langSelector').val(localStorage.getItem('app-lang'));
+        }
+    });
+</script>
+{% endblock %}
