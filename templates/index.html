@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -75,6 +75,7 @@
         .fs-icon.blue{background:rgba(30,136,229,0.15);color:#1e88e5;}
         .fs-icon.green{background:rgba(0,168,132,0.15);color:var(--accent);}
         .fs-icon.red{background:rgba(229,57,53,0.15);color:#e53935;}
+        .fs-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px;padding-left:4px;}
 
         .settings-header{background:var(--accent);color:#fff;padding:50px 20px 30px;text-align:center;}
         .settings-header h2{margin:0;font-size:28px;}
@@ -83,13 +84,17 @@
         .settings-card{background:var(--sidebar);border-radius:16px;border:1px solid var(--bdr);margin-bottom:20px;}
         .settings-row{display:flex;align-items:center;padding:14px 16px;gap:14px;cursor:pointer;border-bottom:1px solid var(--bdr);}
         .settings-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+        .settings-icon.blue{background:rgba(30,136,229,0.15);color:#1e88e5;}
+        .settings-icon.green{background:rgba(0,168,132,0.15);color:var(--accent);}
+        .settings-icon.red{background:rgba(229,57,53,0.15);color:#e53935;}
+        
         .toggle-switch{position:relative;width:50px;height:28px;background:#ccc;border-radius:14px;cursor:pointer;}
         .toggle-switch.on{background:var(--accent);}
         .toggle-switch::after{content:'';position:absolute;width:24px;height:24px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform .3s;}
         .toggle-switch.on::after{transform:translateX(22px);}
 
         .empty-state{padding:50px;text-align:center;color:var(--sub);}
-        .tab-content{display:none;height:100%;overflow-y:auto;}
+        .tab-content{display:none;width:100%;height:100%;overflow-y:auto;}
         .tab-content.active{display:block;}
 
         .modal-content{border-radius:15px;background:var(--sidebar);color:var(--txt);border:1px solid var(--bdr);}
@@ -159,8 +164,6 @@
         .ch-stat-num{display:block;font-size:17px;font-weight:700;color:var(--txt);}
         .ch-stat-label{display:block;font-size:11px;color:var(--sub);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;}
         .ch-stat-divider{width:1px;height:36px;background:var(--bdr);}
-        .ch-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px;padding-left:4px;}
-        .ch-section-label.danger-label{color:#e53935;}
         .ch-info-card{background:var(--sidebar);border-radius:18px;border:1px solid var(--bdr);margin-bottom:20px;overflow:hidden;}
         .ch-info-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--bdr);cursor:pointer;}
         .ch-info-row:last-child{border-bottom:none;}
@@ -171,6 +174,7 @@
         .ch-info-text{display:flex;flex-direction:column;}
         .ch-info-title{font-size:15px;font-weight:600;color:var(--txt);}
         .ch-info-val{font-size:13px;color:var(--sub);margin-top:1px;}
+        .ch-section-label.danger-label{color:#e53935;}
         .danger-row:active{background:rgba(229,57,53,0.05);}
     </style>
 </head>
@@ -202,12 +206,14 @@
             <i class="fas fa-search ch-search-icon"></i>
             <input type="text" class="ch-search-input" placeholder="Search channels...">
         </div>
-        <div id="channelsList"><div class="ch-empty-state">
-            <div class="ch-empty-icon"><i class="fas fa-hashtag"></i></div>
-            <h3>No channels yet</h3>
-            <p>Create a channel to broadcast messages to your followers</p>
-            <button class="ch-create-btn" onclick="showChannelModal()"><i class="fas fa-plus"></i> Create Channel</button>
-        </div></div>
+        <div id="channelsList">
+            <div class="ch-empty-state">
+                <div class="ch-empty-icon"><i class="fas fa-hashtag"></i></div>
+                <h3>No channels yet</h3>
+                <p>Create a channel to broadcast messages to your followers</p>
+                <button class="ch-create-btn" onclick="showChannelModal()"><i class="fas fa-plus"></i> Create Channel</button>
+            </div>
+        </div>
     </div>
     
     <div id="profileTab" class="tab-content">
@@ -265,11 +271,6 @@
                     <div style="flex:1;"><h4 style="margin:0;">Dark Mode</h4><p style="margin:0;color:var(--sub);font-size:13px;">Switch between light and dark</p></div>
                     <div class="toggle-switch" id="themeToggle"></div>
                 </div>
-                <div class="settings-row" onclick="location.href='/notifications'">
-                    <div class="settings-icon" style="background:rgba(255,112,67,0.15);color:#ff7043;"><i class="fas fa-bell"></i></div>
-                    <div style="flex:1;"><h4 style="margin:0;">Notifications</h4><p style="margin:0;color:var(--sub);font-size:13px;">Message alerts and sound</p></div>
-                    <i class="fas fa-chevron-right" style="color:var(--sub);"></i>
-                </div>
             </div>
             <div class="settings-label">Tools</div>
             <div class="settings-card">
@@ -290,200 +291,3 @@
         </div>
     </div>
 </div>
-
-<div class="chat-area" id="chatArea">
-    <div class="chat-header">
-        <button class="back-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></button>
-        <span id="chatTitle" onclick="openProfile()">Select a chat</span>
-        <div id="headerCallBtns" style="display:none;">
-            <button onclick="startCall('voice')"><i class="fas fa-phone"></i></button>
-            <button onclick="startCall('video')"><i class="fas fa-video"></i></button>
-        </div>
-        <i class="fas fa-info-circle" onclick="openInfo()" style="margin-left:8px;cursor:pointer;"></i>
-    </div>
-    <div class="messages-container" id="messagesArea">
-        <div class="empty-state"><i class="fas fa-comment-dots"></i><br>Select a conversation</div>
-    </div>
-</div>
-
-<div class="input-wrapper" id="inputWrapper" style="display:none;">
-    <div class="attach-menu" id="attachMenu">
-        <button class="attach-opt" onclick="triggerFile('image')"><i class="fas fa-image" style="background:#e91e8c;color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></i>Photo</button>
-        <button class="attach-opt" onclick="triggerFile('document')"><i class="fas fa-file-alt" style="background:#1e88e5;color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></i>Doc</button>
-        <button class="attach-opt" onclick="triggerFile('audio')"><i class="fas fa-music" style="background:#ff7043;color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></i>Audio</button>
-    </div>
-    <div class="input-area">
-        <button class="attach-btn" onclick="toggleAttachMenu()"><i class="fas fa-paperclip"></i></button>
-        <input type="text" id="msgInput" placeholder="Type a message..." onkeypress="if(event.key=='Enter')sendMsg()">
-        <button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
-    </div>
-    <input type="file" id="fileInputImage" accept="image/*" style="display:none" onchange="uploadFile(this,'image')">
-    <input type="file" id="fileInputDocument" accept=".pdf,.doc,.docx,.txt,.zip" style="display:none" onchange="uploadFile(this,'document')">
-    <input type="file" id="fileInputAudio" accept="audio/*" style="display:none" onchange="uploadFile(this,'audio')">
-</div>
-
-<div class="bottom-nav">
-    <button class="nav-btn active" onclick="switchTab('chats')"><i class="fas fa-comment-dots"></i><span>Chats</span></button>
-    <button class="nav-btn" onclick="switchTab('channels')"><i class="fas fa-hashtag"></i><span>Channels</span></button>
-    <button class="nav-btn" onclick="switchTab('profile')"><i class="fas fa-user"></i><span>Profile</span></button>
-    <button class="nav-btn" onclick="switchTab('settings')"><i class="fas fa-cog"></i><span>Settings</span></button>
-</div>
-
-<div class="fullscreen-overlay" id="userProfileOverlay">
-    <div class="fs-header">
-        <button class="fs-back-btn" onclick="closeFullscreen()"><i class="fas fa-arrow-left"></i></button>
-        <div class="fs-avatar" id="fsUserAvatar">&#128100;</div>
-        <div class="fs-name" id="fsUserName">User</div>
-        <div class="fs-username" id="fsUserUsername">@username</div>
-        <div class="fs-actions">
-            <button class="fs-btn fs-btn-primary" onclick="messageFromProfile()"><i class="fas fa-paper-plane"></i> Message</button>
-            <button class="fs-btn fs-btn-icon fs-btn-outline" onclick="callFromProfile('voice')"><i class="fas fa-phone"></i></button>
-            <button class="fs-btn fs-btn-icon fs-btn-outline" onclick="callFromProfile('video')"><i class="fas fa-video"></i></button>
-        </div>
-    </div>
-    <div class="fs-content">
-        <div class="fs-se                <div class="fs-section-label">About</div>
-                <div class="fs-card">
-                    <div class="fs-row"><div class="fs-icon blue"><i class="fas fa-phone"></i></div><div class="fs-info"><h4>Phone</h4><p id="fsUserPhone">Not shared</p></div></div>
-                    <div class="fs-row"><div class="fs-icon green"><i class="fas fa-calendar"></i></div><div class="fs-info"><h4>Joined</h4><p id="fsUserJoined">Recently</p></div></div>
-                </div>
-                <div class="fs-section-label" style="color:#e53935;">Actions</div>
-                <div class="fs-card">
-                    <div class="fs-row" onclick="blockUser()"><div class="fs-icon red"><i class="fas fa-ban"></i></div><div class="fs-info"><h4>Block User</h4><p>Prevent them from messaging you</p></div><i class="fas fa-chevron-right arrow"></i></div>
-                    <div class="fs-row" onclick="reportUser()"><div class="fs-icon red"><i class="fas fa-flag"></i></div><div class="fs-info"><h4>Report User</h4><p>Report inappropriate behavior</p></div><i class="fas fa-chevron-right arrow"></i></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="fullscreen-overlay" id="channelInfoOverlay">
-            <div class="ch-profile-header">
-                <button class="fs-back-btn" onclick="closeFullscreen()"><i class="fas fa-arrow-left"></i></button>
-                <div class="ch-profile-banner"></div>
-                <div class="ch-profile-avatar-wrap">
-                    <div class="ch-profile-avatar" id="fsChannelAvatar">#</div>
-                    <div class="ch-profile-badge"><i class="fas fa-hashtag"></i></div>
-                </div>
-                <div class="ch-profile-info">
-                    <h2 class="ch-profile-name" id="fsChannelName">Channel</h2>
-                    <span class="ch-profile-handle" id="fsChannelUsername">@channel</span>
-                </div>
-                <div class="ch-profile-actions">
-                    <button class="ch-action-btn ch-action-primary" onclick="shareChannel()"><i class="fas fa-share-alt"></i> Share</button>
-                    <button class="ch-action-btn ch-action-icon" onclick="copyChannelLinkFs()"><i class="fas fa-link"></i></button>
-                </div>
-            </div>
-            <div class="ch-profile-body">
-                <div class="ch-stats-row">
-                    <div class="ch-stat"><span id="fsChannelMembers" class="ch-stat-num">0</span><span class="ch-stat-label">Members</span></div>
-                    <div class="ch-stat-divider"></div>
-                    <div class="ch-stat"><span class="ch-stat-num" id="fsChannelRole">Member</span><span class="ch-stat-label">Your Role</span></div>
-                    <div class="ch-stat-divider"></div>
-                    <div class="ch-stat"><span class="ch-stat-num">Public</span><span class="ch-stat-label">Type</span></div>
-                </div>
-                <div class="ch-section-label">About</div>
-                <div class="ch-info-card">
-                    <div class="ch-info-row"><div class="ch-info-icon blue"><i class="fas fa-calendar-alt"></i></div><div class="ch-info-text"><span class="ch-info-title">Created</span><span class="ch-info-val" id="fsChannelCreated">Recently</span></div></div>
-                    <div class="ch-info-row"><div class="ch-info-icon green"><i class="fas fa-globe"></i></div><div class="ch-info-text"><span class="ch-info-title">Visibility</span><span class="ch-info-val">Public Channel</span></div></div>
-                </div>
-                <div class="ch-section-label danger-label">Actions</div>
-                <div class="ch-info-card">
-                    <div class="ch-info-row danger-row" onclick="leaveChannel()"><div class="ch-info-icon red"><i class="fas fa-sign-out-alt"></i></div><div class="ch-info-text"><span class="ch-info-title" style="color:#e53935;">Leave Channel</span><span class="ch-info-val">Exit this channel</span></div><i class="fas fa-chevron-right" style="color:#ccc;margin-left:auto;"></i></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="chat-area" id="chatArea">
-            <div class="chat-header">
-                <button class="back-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></button>
-                <span id="chatTitle" onclick="openProfile()">Select a chat</span>
-                <div id="headerCallBtns" style="display:none;">
-                    <button onclick="startCall('voice')"><i class="fas fa-phone"></i></button>
-                    <button onclick="startCall('video')"><i class="fas fa-video"></i></button>
-                </div>
-                <i class="fas fa-info-circle" onclick="openInfo()" style="margin-left:8px;cursor:pointer;"></i>
-            </div>
-            <div class="messages-container" id="messagesArea">
-                <div class="empty-state"><i class="fas fa-comment-dots"></i><br>Select a conversation</div>
-            </div>
-        </div>
-
-        <div class="input-wrapper" id="inputWrapper" style="display:none;">
-            <div class="attach-menu" id="attachMenu">
-                <button class="attach-opt" onclick="triggerFile('image')"><i class="fas fa-image" style="background:#e91e8c;color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></i>Photo</button>
-                <button class="attach-opt" onclick="triggerFile('document')"><i class="fas fa-file-alt" style="background:#1e88e5;color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></i>Doc</button>
-                <button class="attach-opt" onclick="triggerFile('audio')"><i class="fas fa-music" style="background:#ff7043;color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></i>Audio</button>
-            </div>
-            <div class="input-area">
-                <button class="attach-btn" onclick="toggleAttachMenu()"><i class="fas fa-paperclip"></i></button>
-                <input type="text" id="msgInput" placeholder="Type a message..." onkeypress="if(event.key=='Enter')sendMsg()">
-                <button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
-            </div>
-            <input type="file" id="fileInputImage" accept="image/*" style="display:none" onchange="uploadFile(this,'image')">
-            <input type="file" id="fileInputDocument" accept=".pdf,.doc,.docx,.txt,.zip" style="display:none" onchange="uploadFile(this,'document')">
-            <input type="file" id="fileInputAudio" accept="audio/*" style="display:none" onchange="uploadFile(this,'audio')">
-        </div>
-
-        <div class="bottom-nav">
-            <button class="nav-btn active" onclick="switchTab('chats')"><i class="fas fa-comment-dots"></i><span>Chats</span></button>
-            <button class="nav-btn" onclick="switchTab('channels')"><i class="fas fa-hashtag"></i><span>Channels</span></button>
-            <button class="nav-btn" onclick="switchTab('profile')"><i class="fas fa-user"></i><span>Profile</span></button>
-            <button class="nav-btn" onclick="switchTab('settings')"><i class="fas fa-cog"></i><span>Settings</span></button>
-        </div>
-
-        <div class="modal fade" id="channelModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white"><h5>Create Channel</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-                    <div class="modal-body">
-                        <input type="text" id="channelName" class="form-control mb-3" placeholder="Channel name">
-                        <textarea id="channelDesc" class="form-control mb-3" placeholder="Description" rows="2"></textarea>
-                        <hr>
-                        <div class="d-flex gap-2">
-                            <input type="text" id="joinUsername" class="form-control" placeholder="Join by @username">
-                            <button class="btn btn-outline-success" onclick="joinChannel()">Join</button>
-                        </div>
-                    </div>
-                    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success" onclick="createChannel()">Create</button></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="upload-progress" id="uploadProgress">
-            <span id="uploadProgressText">Uploading...</span>
-            <div style="width:100%;height:6px;background:var(--bdr);border-radius:3px;margin-top:8px;"><div style="height:100%;background:var(--accent);border-radius:3px;transition:width .3s;" id="uploadProgressBar"></div></div>
-        </div>
-
-        <div id="imgLightbox"><button style="position:absolute;top:16px;right:16px;background:none;border:none;color:#fff;font-size:28px;" onclick="document.getElementById('imgLightbox').classList.remove('show')">&times;</button><img id="lightboxImg" src="" style="max-width:95vw;max-height:90vh;border-radius:8px;"></div>
-
-        <div id="incomingCallOverlay">
-            <div class="call-avatar-ring" id="incomingCallerAvatar">&#128100;</div>
-            <div><div style="font-size:22px;font-weight:700;" id="incomingCallerName">Caller</div><div style="color:#aaa;" id="incomingCallType">Incoming voice call...</div></div>
-            <div class="call-action-btns"><button class="btn-reject" onclick="rejectCall()"><i class="fas fa-phone-slash"></i></button><button class="btn-accept" onclick="acceptCall()"><i class="fas fa-phone"></i></button></div>
-        </div>
-
-        <div id="activeCallScreen">
-            <video id="remoteVideo" autoplay playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:none;background:#000;"></video>
-            <audio id="remoteAudio" autoplay playsinline></audio>
-            <video id="localVideo" autoplay playsinline muted style="position:absolute;top:16px;right:16px;width:120px;height:160px;border-radius:12px;border:2px solid var(--accent);display:none;background:#222;z-index:10;"></video>
-            <div style="position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:14px;">
-                <div class="call-avatar-ring" style="animation:none;" id="activeCallAvatar">&#128100;</div>
-                <div style="font-size:20px;font-weight:700;" id="activeCallName">-</div>
-                <div class="call-timer" id="callTimerDisplay">00:00</div>
-            </div>
-            <div style="position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:20px;">
-                <div style="display:flex;gap:24px;">
-                    <button class="ctrl-btn" id="btnMute" onclick="toggleMute()"><i class="fas fa-microphone"></i></button>
-                    <button class="ctrl-btn" id="btnSpeaker" onclick="toggleSpeaker()"><i class="fas fa-volume-up"></i></button>
-                    <button class="ctrl-btn" id="btnCamera" onclick="toggleCamera()" style="display:none;"><i class="fas fa-video"></i></button>
-                    <button class="ctrl-btn" id="btnFlip" onclick="flipCamera()" style="display:none;"><i class="fas fa-sync-alt"></i></button>
-                </div>
-                <button class="btn-end-call" onclick="endCall()"><i class="fas fa-phone-slash"></i></button>
-            </div>
-        </div>
-
-        <div class="toast-msg" id="toastMsg">Copied!</div>
-
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-                    
