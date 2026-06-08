@@ -1,17 +1,18 @@
-from flask import Flask, render_template, session, redirect, send_from_directory
-from config import SECRET_KEY, PORT, users  # Imported users collection directly for real-time lookups
+from flask import Flask, render_template, session, redirect, send_from_directory, jsonify
+from config import SECRET_KEY, PORT
 from routes.auth import auth_bp
 from routes.user_routes import user_bp
 from routes.message_routes import msg_bp
 from routes.channel_routes import channel_bp
 from routes.call_routes import call_bp
 from routes.file_routes import file_bp
+from config import db
 import os
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
-# Register all application feature blueprints
+# Register blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(msg_bp)
@@ -19,8 +20,7 @@ app.register_blueprint(channel_bp)
 app.register_blueprint(call_bp)
 app.register_blueprint(file_bp)
 
-# ── Static File Routing ───────────────────────────────────────────────────────
-
+# Static files
 @app.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory('static', path)
@@ -33,54 +33,55 @@ def service_worker():
 def manifest():
     return send_from_directory('static', 'manifest.json')
 
-# ── Core Page Routing ─────────────────────────────────────────────────────────
-
+# Page routes
 @app.route('/')
 def index():
-    """Root route: Redirect to dashboard if logged in, otherwise present login page."""
     if 'user_id' in session:
         return redirect('/dashboard')
     return render_template('login.html')
 
 @app.route('/dashboard')
 def dashboard():
-    """Main communication dashboard window."""
     if 'user_id' not in session:
         return redirect('/')
-        
-    # Fetch latest user state parameters to ensure names/avatars look clean live
-    current_user = users.find_one({'user_id': session['user_id']})
-    if not current_user:
-        return redirect('/logout') # Safety fallback if database drops record
-        
-    return render_template('index.html', user=current_user)
+    # Get fresh user data from DB
+    user = db['users'].find_one({'user_id': session['user_id']})
+    if user:
+        session['full_name'] = user.get('full_name', session.get('full_name', ''))
+        session['username'] = user.get('username', session.get('username', ''))
+    return render_template('index.html', user=session)
 
 @app.route('/profile')
 def profile():
-    """Legacy profile route. Redirects to unified new modular settings panel."""
     if 'user_id' not in session:
         return redirect('/')
-    return redirect('/settings')
+    # FIX: Query database for user data instead of relying on session only
+    user = db['users'].find_one({'user_id': session['user_id']})
+    if not user:
+        return redirect('/')
+    # Ensure all new fields have defaults
+    user.setdefault('avatar', 'default')
+    user.setdefault('language', 'en')
+    user.setdefault('theme', 'light')
+    user.setdefault('text_size', 'medium')
+    user.setdefault('auto_delete', 'never')
+    return render_template('profile.html', profile=user, user=user)
 
 @app.route('/settings')
 def settings():
-    """
-    Unified account settings controller.
-    Loads real-time bio, username, avatar definitions, and current system credentials.
-    """
     if 'user_id' not in session:
         return redirect('/')
-        
-    # Query database directly instead of reliance on temporary static sessions
-    current_user = users.find_one({'user_id': session['user_id']})
-    if not current_user:
+    user = db['users'].find_one({'user_id': session['user_id']})
+    if not user:
         return redirect('/')
-        
-    return render_template('settings.html', user=current_user)
+    user.setdefault('theme', 'light')
+    return render_template('settings.html', user=user)
 
-# ── Application Runtime Execution ─────────────────────────────────────────────
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
 
 if __name__ == '__main__':
-    # Starts server using configurations extracted cleanly out of your configuration file
-    app.run(host='0.0.0.0', port=PORT, debug=True)
-    
+    print(f"🚀 Server running on port {PORT}")
+    app.run(host='0.0.0.0', port=PORT, debug=False)
