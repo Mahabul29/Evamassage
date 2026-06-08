@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify, session, send_from_directory
 from datetime import datetime
 from functools import wraps
-from bson.objectid import ObjectId
-import os, uuid, mimetypes
+import os, uuid
 
 file_bp = Blueprint('file', __name__)
 
@@ -27,23 +26,23 @@ def login_required(f):
 
 def allowed_file(filename, file_type):
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
-    if file_type == 'image':    return ext in ALLOWED_IMAGES
-    if file_type == 'audio':    return ext in ALLOWED_AUDIO
+    if file_type == 'image':  return ext in ALLOWED_IMAGES
+    if file_type == 'audio':  return ext in ALLOWED_AUDIO
     return ext in (ALLOWED_DOCS | ALLOWED_AUDIO | ALLOWED_IMAGES)
 
-def get_file_type(filename, requested_type):
+def get_file_type(filename):
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
     if ext in ALLOWED_IMAGES: return 'image'
     if ext in ALLOWED_AUDIO:  return 'audio'
     return 'document'
 
 
-# ── Upload ────────────────────────────────────────────────────────────────────
+# ── Upload ─────────────────────────────────────────────────────────────────────
 @file_bp.route('/api/files/upload', methods=['POST'])
 @login_required
 def upload_file():
-    # Get db — same way channel_routes does it
-    db = request.db
+    # FIX: import db directly from config — never use request.db (it's never set)
+    from config import messages as messages_col, channel_messages, channel_members, users
 
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
@@ -63,8 +62,7 @@ def upload_file():
     # Size check
     f.seek(0, 2); size = f.tell(); f.seek(0)
     max_mb    = MAX_IMAGE_MB if file_type == 'image' else MAX_FILE_MB
-    max_bytes = max_mb * 1024 * 1024
-    if size > max_bytes:
+    if size > max_mb * 1024 * 1024:
         return jsonify({"error": f"File too large. Max {max_mb}MB"}), 400
 
     # Save to disk
@@ -73,11 +71,10 @@ def upload_file():
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     f.save(filepath)
 
-    file_url  = f"/static/uploads/{filename}"
-    orig_name = f.filename
-    actual_type = get_file_type(orig_name, file_type)
+    file_url    = f"/static/uploads/{filename}"
+    orig_name   = f.filename
+    actual_type = get_file_type(orig_name)
 
-    # Build message doc — same fields as channel_routes messages
     msg_doc = {
         'from_id':    session['user_id'],
         'message':    f"[{actual_type.capitalize()}] {orig_name}",
@@ -90,64 +87,55 @@ def upload_file():
 
     try:
         if chat_type == 'channel' and channel_id:
-            oid = ObjectId(channel_id)
-            is_member = db['channel_members'].find_one({
+            # Channel file message
+            try:
+                from bson.objectid import ObjectId
+                oid = ObjectId(channel_id)
+            except Exception:
+                oid = channel_id
+
+            is_member = channel_members.find_one({
                 'channel_id': oid, 'user_id': session['user_id']
             })
             if not is_member:
+                try: os.remove(filepath)
+                except: pass
                 return jsonify({"error": "Not a channel member"}), 403
 
-            user = db['users'].find_one({'user_id': session['user_id']})
+            user = users.find_one({'user_id': session['user_id']})
             msg_doc['channel_id'] = oid
-            msg_doc['from_name']  = user.get('full_name', user.get('username','')) if user else ''
-            db['channel_messages'].insert_one(msg_doc)
+            msg_doc['from_name']  = user.get('full_name', user.get('username', '')) if user else ''
+            channel_messages.insert_one(msg_doc)
 
         else:
-            # Private message — use same collection as send_private_message model
+            # Private file message
             if not to_id:
+                try: os.remove(filepath)
+                except: pass
                 return jsonify({"error": "to_id required"}), 400
             try:
-                to_id_int = int(to_id)
+                to_id_val = int(to_id)
             except (ValueError, TypeError):
-                to_id_int = to_id
-            msg_doc['to_id'] = to_id_int
-            # Use 'messages' collection — same as your message model
-            db['messages'].insert_one(msg_doc)
+                to_id_val = to_id
+
+            msg_doc['to_id'] = to_id_val
+            # FIX: also update the chats collection so it appears in chat list
+            from config import chats
+            messages_col.insert_one(msg_doc)
+            u1, u2 = sorted([session['user_id'], to_id_val])
+            chats.update_one(
+                {'user1_id': u1, 'user2_id': u2},
+                {'$set': {
+                    'last_message':      f"[{actual_type.capitalize()}]",
+                    'last_message_time': datetime.now()
+                }},
+                upsert=True
+            )
 
     except Exception as e:
-        # Clean up saved file if DB fails
         try: os.remove(filepath)
         except: pass
         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
     return jsonify({"success": True, "file_url": file_url, "file_name": orig_name})
-
-
-# ── Fetch messages with file fields (replaces /api/messages/<id>) ─────────────
-# This endpoint returns messages INCLUDING file fields so the frontend renders them
-@file_bp.route('/api/messages/full/<int:user_id>')
-@login_required
-def get_messages_full(user_id):
-    db = request.db
-    my_id = session['user_id']
-    msgs = db['messages'].find({
-        '$or': [
-            {'from_id': my_id, 'to_id': user_id},
-            {'from_id': user_id, 'to_id': my_id}
-        ]
-    }).sort('created_at', 1).limit(100)
-
-    result = []
-    for m in msgs:
-        result.append({
-            'from_id':    m.get('from_id'),
-            'to_id':      m.get('to_id'),
-            'message':    m.get('message',''),
-            'file_url':   m.get('file_url'),
-            'file_name':  m.get('file_name'),
-            'file_type':  m.get('file_type'),
-            'file_size':  m.get('file_size'),
-            'created_at': m['created_at'].isoformat() if hasattr(m.get('created_at'), 'isoformat') else str(m.get('created_at',''))
-        })
-    return jsonify(result)
   
