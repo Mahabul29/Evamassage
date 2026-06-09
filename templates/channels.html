@@ -1,0 +1,502 @@
+{% extends "base.html" %}
+{% block title %}Channels - EvaMassage{% endblock %}
+{% block content %}
+<style>
+:root{--accent:#00a884;--accent-dark:#075e54;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+body.dark{background:#111b21;color:#e9edef;}
+
+/* TOP BAR */
+.topbar{background:var(--accent-dark);color:#fff;padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar h1{font-size:20px;font-weight:700;}
+.topbar-actions{display:flex;gap:10px;}
+.topbar-btn{background:rgba(255,255,255,.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.topbar-btn:active{background:rgba(255,255,255,.25);}
+
+/* SEARCH */
+.search-bar{padding:8px 12px;background:var(--accent-dark);flex-shrink:0;}
+.search-wrap{position:relative;}
+.search-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.6);font-size:14px;}
+.search-input{width:100%;padding:9px 14px 9px 36px;border-radius:20px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:14px;outline:none;}
+.search-input::placeholder{color:rgba(255,255,255,.6);}
+
+/* CHANNEL LIST */
+.channel-list{flex:1;overflow-y:auto;padding-bottom:70px;}
+.ch-bar{padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e0e0e0;background:#fff;flex-shrink:0;}
+body.dark .ch-bar{background:#1f2c34;border-bottom-color:#2a3942;}
+.ch-bar span{font-size:13px;color:#888;}
+.btn-new{background:var(--accent);color:#fff;border:none;padding:7px 16px;border-radius:16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.btn-new:active{background:var(--accent-dark);}
+
+.ch-item{display:flex;align-items:center;padding:13px 16px;gap:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;background:#fff;transition:background .15s;}
+body.dark .ch-item{background:#1f2c34;border-bottom-color:#2a3942;}
+.ch-item:active{background:#f0f2f5;}
+body.dark .ch-item:active{background:#2a3942;}
+.ch-avatar{width:48px;height:48px;border-radius:50%;background:#9c27b0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;flex-shrink:0;}
+.ch-info{flex:1;min-width:0;}
+.ch-name{font-size:15px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+body.dark .ch-name{color:#e9edef;}
+.ch-preview{font-size:13px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+body.dark .ch-preview{color:#8696a0;}
+.ch-role{font-size:10px;background:rgba(0,168,132,.12);color:var(--accent);padding:2px 7px;border-radius:8px;font-weight:700;text-transform:uppercase;flex-shrink:0;}
+.ch-role.admin{background:rgba(233,30,99,.12);color:#e91e63;}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:#aaa;}
+.empty i{font-size:48px;margin-bottom:14px;display:block;color:#ccc;}
+.empty p{font-size:15px;font-weight:500;}
+.empty small{font-size:13px;display:block;margin-top:6px;}
+.empty-btn{margin-top:18px;background:var(--accent);color:#fff;border:none;padding:11px 26px;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;}
+
+/* CHANNEL WINDOW */
+.ch-window{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f0f2f5;z-index:400;flex-direction:column;}
+body.dark .ch-window{background:#0b141a;}
+.ch-window.open{display:flex;}
+
+.ch-header{background:var(--accent-dark);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.ch-back{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px 4px 0;}
+.ch-hav{width:38px;height:38px;border-radius:50%;background:#9c27b0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;}
+.ch-hinfo{flex:1;}
+.ch-hname{font-size:16px;font-weight:700;}
+.ch-hsub{font-size:12px;opacity:.8;}
+.ch-hactions{display:flex;gap:8px;}
+.ch-hbtn{background:rgba(255,255,255,.15);border:none;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+
+.messages-area{flex:1;overflow-y:auto;padding:12px 10px 10px;}
+.msg-bubble{max-width:78%;margin-bottom:6px;padding:8px 12px;border-radius:10px;font-size:14px;line-height:1.4;word-wrap:break-word;}
+.msg-sent{background:#dcf8c6;margin-left:auto;border-radius:10px 10px 2px 10px;}
+body.dark .msg-sent{background:#005c4b;color:#e9edef;}
+.msg-recv{background:#fff;margin-right:auto;border-radius:10px 10px 10px 2px;}
+body.dark .msg-recv{background:#1f2c34;color:#e9edef;}
+.msg-sender{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px;}
+.msg-time{font-size:10px;color:#aaa;text-align:right;margin-top:2px;}
+.msg-date{text-align:center;font-size:11px;color:#888;background:rgba(225,245,254,.8);padding:3px 12px;border-radius:10px;margin:8px auto;width:fit-content;}
+
+.ch-input-area{background:#fff;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;border-top:1px solid #e0e0e0;}
+body.dark .ch-input-area{background:#1f2c34;border-top-color:#2a3942;}
+.ch-input{flex:1;border:none;background:#f0f2f5;border-radius:22px;padding:10px 16px;font-size:15px;outline:none;resize:none;max-height:100px;font-family:inherit;}
+body.dark .ch-input{background:#2a3942;color:#e9edef;}
+.send-btn{width:42px;height:42px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.send-btn:active{background:var(--accent-dark);}
+
+/* OVERLAY (create / join) */
+.overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f0f2f5;z-index:500;flex-direction:column;overflow-y:auto;}
+body.dark .overlay{background:#111b21;}
+.overlay.open{display:flex;}
+.ov-header{background:var(--accent-dark);color:#fff;padding:50px 20px 28px;text-align:center;position:relative;flex-shrink:0;}
+.ov-back{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;}
+.ov-icon{font-size:40px;margin-bottom:8px;}
+.ov-title{font-size:22px;font-weight:700;}
+.ov-sub{font-size:13px;opacity:.85;margin-top:4px;}
+.ov-body{padding:16px;flex:1;}
+.form-card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #e0e0e0;}
+body.dark .form-card{background:#1f2c34;border-color:#2a3942;}
+.form-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);display:block;margin-bottom:6px;}
+.form-label+.form-label{margin-top:12px;}
+.form-input{width:100%;padding:11px 14px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff;color:#111;font-size:15px;outline:none;font-family:inherit;}
+body.dark .form-input{background:#2a3942;border-color:#2a3942;color:#e9edef;}
+.form-input:focus{border-color:var(--accent);}
+.form-input.textarea{resize:none;height:80px;}
+.btn-save{background:var(--accent);color:#fff;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-save:active{background:var(--accent-dark);}
+.btn-cancel{background:none;border:1.5px solid #e0e0e0;color:#666;padding:14px;border-radius:12px;font-size:15px;cursor:pointer;width:100%;margin-top:10px;}
+body.dark .btn-cancel{border-color:#2a3942;color:#8696a0;}
+
+/* Username preview */
+.uname-preview{font-size:12px;color:#888;margin-top:5px;padding-left:2px;}
+.uname-preview span{color:var(--accent);font-weight:600;}
+
+/* CHANNEL INFO PANEL */
+.info-panel{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;z-index:600;border-radius:20px 20px 0 0;padding:20px;box-shadow:0 -4px 20px rgba(0,0,0,.15);}
+body.dark .info-panel{background:#1f2c34;}
+.info-panel.open{display:block;}
+.info-drag{width:40px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 16px;}
+.info-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:599;}
+.info-overlay.open{display:block;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:60px;background:#fff;display:flex;border-top:1px solid #e0e0e0;z-index:300;}
+body.dark .bottom-nav{background:#1f2c34;border-top-color:#2a3942;}
+.nav-btn{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:500;color:#888;cursor:pointer;padding:6px 2px;}
+.nav-btn.active{color:var(--accent);}
+.nav-btn i{font-size:21px;}
+
+/* TOAST */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* LOADING SPINNER */
+.spinner{display:flex;align-items:center;justify-content:center;padding:40px;}
+.spinner i{font-size:28px;color:var(--accent);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <h1><i class="fas fa-hashtag" style="font-size:16px;opacity:.8;"></i> Channels</h1>
+  <div class="topbar-actions">
+    <button class="topbar-btn" onclick="openJoinOverlay()" title="Join Channel"><i class="fas fa-search"></i></button>
+    <button class="topbar-btn" onclick="openCreateOverlay()" title="New Channel"><i class="fas fa-plus"></i></button>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div class="search-bar">
+  <div class="search-wrap">
+    <i class="fas fa-search"></i>
+    <input class="search-input" type="text" placeholder="Search channels..." id="searchInput" oninput="filterChannels()">
+  </div>
+</div>
+
+<!-- CHANNEL LIST HEADER -->
+<div class="ch-bar">
+  <span id="chCount">Your channels</span>
+  <button class="btn-new" onclick="openCreateOverlay()"><i class="fas fa-plus"></i> New Channel</button>
+</div>
+
+<!-- CHANNEL LIST -->
+<div class="channel-list" id="channelList">
+  <div class="spinner" id="loadingSpinner"><i class="fas fa-circle-notch"></i></div>
+  <div id="channelItems"></div>
+  <div class="empty" id="channelsEmpty" style="display:none;">
+    <i class="fas fa-hashtag"></i>
+    <p>No channels yet</p>
+    <small>Create a channel or join one with a username</small>
+    <button class="empty-btn" onclick="openCreateOverlay()"><i class="fas fa-plus"></i> Create Channel</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn" onclick="location.href='/dashboard'"><i class="fas fa-comment-dots"></i><span>Chats</span></button>
+  <button class="nav-btn active"><i class="fas fa-hashtag"></i><span>Channels</span></button>
+  <button class="nav-btn" onclick="location.href='/profile'"><i class="fas fa-user"></i><span>Profile</span></button>
+  <button class="nav-btn" onclick="location.href='/settings'"><i class="fas fa-cog"></i><span>Settings</span></button>
+</nav>
+
+<!-- ══ CHANNEL CHAT WINDOW ══ -->
+<div class="ch-window" id="chWindow">
+  <div class="ch-header">
+    <button class="ch-back" onclick="closeChWindow()"><i class="fas fa-arrow-left"></i></button>
+    <div class="ch-hav">#</div>
+    <div class="ch-hinfo">
+      <div class="ch-hname" id="chWinName">-</div>
+      <div class="ch-hsub" id="chWinSub">channel</div>
+    </div>
+    <div class="ch-hactions">
+      <button class="ch-hbtn" onclick="openInfoPanel()" title="Channel info"><i class="fas fa-info-circle"></i></button>
+    </div>
+  </div>
+  <div class="messages-area" id="chMessagesArea"></div>
+  <div class="ch-input-area">
+    <textarea class="ch-input" id="chInput" placeholder="Message channel..." rows="1"
+      oninput="autoResize(this)" onkeypress="handleChKey(event)"></textarea>
+    <button class="send-btn" onclick="sendChMessage()"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<!-- ══ CREATE CHANNEL OVERLAY ══ -->
+<div class="overlay" id="createOverlay">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeCreateOverlay()"><i class="fas fa-arrow-left"></i></button>
+    <div class="ov-icon">📢</div>
+    <div class="ov-title">New Channel</div>
+    <div class="ov-sub">Create a broadcast channel</div>
+  </div>
+  <div class="ov-body">
+    <div class="form-card">
+      <label class="form-label">Channel Name</label>
+      <input type="text" id="chNameInput" class="form-input" placeholder="e.g. Announcements" oninput="previewUsername()">
+      <div class="uname-preview" id="unamePreview">Username: <span>-</span></div>
+      <label class="form-label" style="margin-top:14px;">Description <span style="color:#aaa;font-weight:400;text-transform:none;">(optional)</span></label>
+      <textarea id="chDescInput" class="form-input textarea" placeholder="What is this channel about?"></textarea>
+    </div>
+    <button class="btn-save" onclick="createChannel()"><i class="fas fa-plus"></i> Create Channel</button>
+    <button class="btn-cancel" onclick="closeCreateOverlay()">Cancel</button>
+  </div>
+</div>
+
+<!-- ══ JOIN CHANNEL OVERLAY ══ -->
+<div class="overlay" id="joinOverlay">
+  <div class="ov-header" style="background:#1565c0;">
+    <button class="ov-back" onclick="closeJoinOverlay()"><i class="fas fa-arrow-left"></i></button>
+    <div class="ov-icon">🔗</div>
+    <div class="ov-title">Join Channel</div>
+    <div class="ov-sub">Enter the channel username</div>
+  </div>
+  <div class="ov-body">
+    <div class="form-card">
+      <label class="form-label">Channel Username</label>
+      <input type="text" id="joinInput" class="form-input" placeholder="e.g. announcements" style="text-transform:lowercase;">
+    </div>
+    <button class="btn-save" style="background:#1565c0;" onclick="joinChannel()"><i class="fas fa-sign-in-alt"></i> Join Channel</button>
+    <button class="btn-cancel" onclick="closeJoinOverlay()">Cancel</button>
+  </div>
+</div>
+
+<!-- ══ CHANNEL INFO PANEL ══ -->
+<div class="info-overlay" id="infoOverlay" onclick="closeInfoPanel()"></div>
+<div class="info-panel" id="infoPanel">
+  <div class="info-drag"></div>
+  <div style="text-align:center;margin-bottom:16px;">
+    <div style="width:64px;height:64px;border-radius:50%;background:#9c27b0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;margin:0 auto 10px;">#</div>
+    <div style="font-size:18px;font-weight:700;" id="infoPanelName">-</div>
+    <div style="font-size:13px;color:var(--accent);margin-top:2px;" id="infoPanelUname">-</div>
+  </div>
+  <div style="background:#f0f2f5;border-radius:12px;padding:12px 14px;margin-bottom:12px;" id="infoPanelDesc">
+    <span style="font-size:13px;color:#666;">No description</span>
+  </div>
+  <div style="display:flex;gap:10px;font-size:13px;color:#666;justify-content:center;margin-bottom:16px;">
+    <span><i class="fas fa-users" style="color:var(--accent);"></i> <span id="infoPanelCount">0</span> members</span>
+  </div>
+  <button class="btn-cancel" onclick="closeInfoPanel()">Close</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+const ME = {{ user['user_id'] }};
+let allChannels = [];
+let currentChId = null;
+let chPollInterval = null;
+let currentChInfo = {};
+
+if(localStorage.getItem('darkMode')==='true') document.body.classList.add('dark');
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadChannels();
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── LOAD CHANNELS ──
+function loadChannels() {
+  document.getElementById('loadingSpinner').style.display = 'flex';
+  $.get('/api/channels', data => {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    allChannels = data;
+    renderChannels(data);
+  }).fail(() => {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    showToast('Failed to load channels');
+  });
+}
+
+function renderChannels(list) {
+  const items = document.getElementById('channelItems');
+  const empty = document.getElementById('channelsEmpty');
+  items.innerHTML = '';
+  document.getElementById('chCount').textContent = list.length
+    ? `${list.length} channel${list.length > 1 ? 's' : ''}`
+    : 'Your channels';
+  if (!list.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.forEach(ch => {
+    const div = document.createElement('div');
+    div.className = 'ch-item';
+    const initial = (ch.name || '#').charAt(0).toUpperCase();
+    div.innerHTML = `
+      <div class="ch-avatar">${initial}</div>
+      <div class="ch-info">
+        <div class="ch-name">${ch.name}</div>
+        <div class="ch-preview"><i class="fas fa-users" style="font-size:11px;"></i> ${ch.member_count || 0} members${ch.description ? ' · ' + ch.description : ''}</div>
+      </div>
+      <span class="ch-role ${ch.role === 'admin' ? 'admin' : ''}">${ch.role || 'member'}</span>`;
+    div.onclick = () => openChannel(ch);
+    items.appendChild(div);
+  });
+}
+
+function filterChannels() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = allChannels.filter(ch =>
+    ch.name.toLowerCase().includes(q) ||
+    (ch.description || '').toLowerCase().includes(q) ||
+    (ch.username || '').toLowerCase().includes(q)
+  );
+  renderChannels(filtered);
+}
+
+// ── OPEN CHANNEL ──
+function openChannel(ch) {
+  currentChId = ch.id;
+  currentChInfo = ch;
+  document.getElementById('chWinName').textContent = '#' + ch.name;
+  document.getElementById('chWinSub').textContent = (ch.member_count || 0) + ' members';
+  document.getElementById('chWindow').classList.add('open');
+  document.getElementById('chMessagesArea').innerHTML = '';
+  loadChMessages();
+  clearInterval(chPollInterval);
+  chPollInterval = setInterval(loadChMessages, 3000);
+}
+
+function closeChWindow() {
+  document.getElementById('chWindow').classList.remove('open');
+  clearInterval(chPollInterval);
+  currentChId = null;
+  loadChannels();
+}
+
+// ── CHANNEL MESSAGES ──
+function loadChMessages() {
+  if (!currentChId) return;
+  $.get(`/api/channels/${currentChId}/messages`, msgs => {
+    const area = document.getElementById('chMessagesArea');
+    const wasAtBottom = area.scrollHeight - area.clientHeight <= area.scrollTop + 60;
+    area.innerHTML = '';
+    if (!msgs.length) {
+      area.innerHTML = '<div class="empty" style="padding:40px 20px;"><i class="fas fa-hashtag"></i><p>No messages yet</p><small>Be the first to send a message!</small></div>';
+      return;
+    }
+    let lastDate = '';
+    msgs.forEach(m => {
+      const sent = m.from_id === ME;
+      // Date label
+      const msgDate = m.created_at ? new Date(m.created_at).toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'}) : '';
+      if (msgDate && msgDate !== lastDate) {
+        lastDate = msgDate;
+        const dl = document.createElement('div');
+        dl.className = 'msg-date';
+        dl.textContent = msgDate;
+        area.appendChild(dl);
+      }
+      const div = document.createElement('div');
+      div.className = 'msg-bubble ' + (sent ? 'msg-sent' : 'msg-recv');
+      const t = m.created_at ? new Date(m.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+      let content = '';
+      if (!sent) content += `<div class="msg-sender">${m.from_name || 'Unknown'}</div>`;
+      if (m.file_url && m.file_type && m.file_type.startsWith('image/')) {
+        content += `<img src="${m.file_url}" style="max-width:200px;border-radius:8px;display:block;">`;
+      } else if (m.file_url) {
+        content += `<a href="${m.file_url}" target="_blank" style="color:var(--accent);"><i class="fas fa-file"></i> ${m.file_name || 'File'}</a>`;
+      } else {
+        content += m.message;
+      }
+      content += `<div class="msg-time">${t}</div>`;
+      div.innerHTML = content;
+      area.appendChild(div);
+    });
+    if (wasAtBottom) area.scrollTop = area.scrollHeight;
+  });
+}
+
+// ── SEND CHANNEL MESSAGE ── FIX: use JSON not form data
+function sendChMessage() {
+  const input = document.getElementById('chInput');
+  const text = input.value.trim();
+  if (!text || !currentChId) return;
+  input.value = ''; input.style.height = '';
+  fetch(`/api/channels/${currentChId}/send`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({message: text})
+  })
+  .then(r => r.json())
+  .then(r => {
+    if (r.success) loadChMessages();
+    else showToast(r.error || 'Failed to send');
+  })
+  .catch(() => showToast('Network error'));
+}
+
+function handleChKey(e) {
+  if (e.which === 13 && !e.shiftKey) { e.preventDefault(); sendChMessage(); }
+}
+function autoResize(el) {
+  el.style.height = '';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ── CREATE CHANNEL ── FIX: correct URL + JSON body
+function openCreateOverlay() { document.getElementById('createOverlay').classList.add('open'); }
+function closeCreateOverlay() {
+  document.getElementById('createOverlay').classList.remove('open');
+  document.getElementById('chNameInput').value = '';
+  document.getElementById('chDescInput').value = '';
+  document.getElementById('unamePreview').innerHTML = 'Username: <span>-</span>';
+}
+
+function previewUsername() {
+  const name = document.getElementById('chNameInput').value;
+  const u = name.replace(/[^a-zA-Z0-9_]/g, s => s === ' ' ? '_' : '').toLowerCase().slice(0, 30) || '-';
+  document.getElementById('unamePreview').innerHTML = `Username: <span>@${u}</span>`;
+}
+
+function createChannel() {
+  const name = document.getElementById('chNameInput').value.trim();
+  const desc = document.getElementById('chDescInput').value.trim();
+  if (!name || name.length < 2) { showToast('Name must be at least 2 characters'); return; }
+
+  // FIX: POST to correct endpoint /api/channels with JSON
+  fetch('/api/channels', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, description: desc})
+  })
+  .then(r => r.json())
+  .then(r => {
+    if (r.success) {
+      showToast('✅ Channel created!');
+      closeCreateOverlay();
+      loadChannels();
+    } else {
+      showToast(r.error || 'Failed to create channel');
+    }
+  })
+  .catch(() => showToast('Network error — try again'));
+}
+
+// ── JOIN CHANNEL ── FIX: use JSON
+function openJoinOverlay() { document.getElementById('joinOverlay').classList.add('open'); }
+function closeJoinOverlay() {
+  document.getElementById('joinOverlay').classList.remove('open');
+  document.getElementById('joinInput').value = '';
+}
+
+function joinChannel() {
+  const username = document.getElementById('joinInput').value.trim().toLowerCase();
+  if (!username) { showToast('Enter a channel username'); return; }
+
+  fetch(`/api/channels/join/${encodeURIComponent(username)}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({})
+  })
+  .then(r => r.json())
+  .then(r => {
+    if (r.success) {
+      showToast(r.already_member ? 'Already a member!' : '✅ Joined ' + r.name);
+      closeJoinOverlay();
+      loadChannels();
+    } else {
+      showToast(r.error || 'Channel not found');
+    }
+  })
+  .catch(() => showToast('Network error'));
+}
+
+// ── INFO PANEL ──
+function openInfoPanel() {
+  const ch = currentChInfo;
+  document.getElementById('infoPanelName').textContent = ch.name || '-';
+  document.getElementById('infoPanelUname').textContent = '@' + (ch.username || '');
+  document.getElementById('infoPanelCount').textContent = ch.member_count || 0;
+  const desc = document.getElementById('infoPanelDesc');
+  desc.innerHTML = ch.description
+    ? `<span style="font-size:13px;color:#333;">${ch.description}</span>`
+    : `<span style="font-size:13px;color:#aaa;">No description</span>`;
+  document.getElementById('infoPanel').classList.add('open');
+  document.getElementById('infoOverlay').classList.add('open');
+}
+function closeInfoPanel() {
+  document.getElementById('infoPanel').classList.remove('open');
+  document.getElementById('infoOverlay').classList.remove('open');
+}
+</script>
+{% endblock %}
