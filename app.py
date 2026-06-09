@@ -25,13 +25,15 @@ app.register_blueprint(file_bp)
 def serve_static(path):
     return send_from_directory('static', path)
 
-# CRITICAL PWA FIX: Served publicly from root with zero-cache to prevent login redirects
+# CRITICAL PWA FIX: Service Worker served from root with correct headers
 @app.route('/sw.js')
 def service_worker():
     response = send_from_directory('static', 'sw.js', mimetype='application/javascript')
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Service-Worker-Allowed'] = '/'  # ← THIS was missing!
     return response
 
+# Manifest served from root
 @app.route('/manifest.json')
 def manifest():
     response = send_from_directory('static', 'manifest.json', mimetype='application/json')
