@@ -14,8 +14,8 @@
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
 
-    <!-- FIX: manifest path corrected to /static/manifest.json -->
-    <link rel="manifest" href="/static/manifest.json" crossorigin="use-credentials">
+    <!-- manifest served from root via urls.py -->
+    <link rel="manifest" href="/manifest.json">
 
     <meta name="theme-color" content="#00a884">
     <meta name="mobile-web-app-capable" content="yes">
@@ -28,15 +28,22 @@
 
     {% block content %}{% endblock %}
 
-    <!-- Install Popup HTML -->
-    <div id="installPopup" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-        background:#1f2c34; color:#fff; padding:16px 20px; border-radius:12px; z-index:9999;
-        box-shadow:0 4px 20px rgba(0,0,0,0.4); text-align:center; width:90%; max-width:360px;">
-        <p style="margin:0 0 12px; font-size:15px;">📲 Install <strong>EvaMassage</strong> for a better experience!</p>
+    <!-- Install Popup -->
+    <div id="installPopup" style="display:none; position:fixed; bottom:20px; left:50%;
+        transform:translateX(-50%); background:#1f2c34; color:#fff; padding:16px 20px;
+        border-radius:12px; z-index:9999; box-shadow:0 4px 20px rgba(0,0,0,0.4);
+        text-align:center; width:90%; max-width:360px;">
+        <p style="margin:0 0 12px; font-size:15px;">
+            📲 Install <strong>EvaMassage</strong> for a better experience!
+        </p>
         <button onclick="installApp()" style="background:#00a884; color:#fff; border:none;
-            padding:8px 20px; border-radius:8px; margin-right:8px; cursor:pointer;">Install</button>
-        <button onclick="closeInstallPopup()" style="background:#2a3942; color:#aaa; border:none;
-            padding:8px 16px; border-radius:8px; cursor:pointer;">Not now</button>
+            padding:8px 20px; border-radius:8px; margin-right:8px; cursor:pointer;">
+            Install
+        </button>
+        <button onclick="closeInstallPopup()" style="background:#2a3942; color:#aaa;
+            border:none; padding:8px 16px; border-radius:8px; cursor:pointer;">
+            Not now
+        </button>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -44,11 +51,11 @@
 
     {% block scripts %}{% endblock %}
 
-    <!-- FIX: SW registered from /static/sw.js -->
+    <!-- SW registered from /sw.js (root) so scope covers full app -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
                     .then(function (registration) {
                         console.log('Service Worker Registered:', registration.scope);
                     })
@@ -59,7 +66,6 @@
         }
     </script>
 
-    <!-- FIX: install.js loaded here -->
     <script src="/static/js/install.js"></script>
 
 </body>
