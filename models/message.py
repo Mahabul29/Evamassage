@@ -76,4 +76,4 @@ def get_chat_list(user_id):
                 'last_message': chat.get('last_message', '')
             })
     return result
-    
+
