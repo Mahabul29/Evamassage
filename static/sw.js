@@ -1,21 +1,24 @@
-const CACHE_NAME = 'evamassage-v3';
-const urlsToCache = ['/', '/static/manifest.json'];
+const CACHE_NAME = 'evamassage-v1';
 
-self.addEventListener('install', e => {
-    self.skipWaiting();
-    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache)));
-});
-self.addEventListener('activate', e => {
-    e.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-        )
+const urlsToCache = [
+    '/',
+    '/static/css/style.css'
+];
+
+self.addEventListener('install', function(event) {
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(function(cache) {
+                return cache.addAll(urlsToCache);
+            })
     );
-    self.clients.claim();
 });
-self.addEventListener('fetch', e => {
-    if(e.request.method !== 'GET') return;
-    e.respondWith(
-        caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('/')))
+
+self.addEventListener('fetch', function(event) {
+    event.respondWith(
+        caches.match(event.request)
+            .then(function(response) {
+                return response || fetch(event.request);
+            })
     );
 });
