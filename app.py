@@ -20,21 +20,25 @@ app.register_blueprint(channel_bp)
 app.register_blueprint(call_bp)
 app.register_blueprint(file_bp)
 
-# Global static folder asset delivery rules
+# Static files directory
 @app.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory('static', path)
 
-# Root-routed endpoints with strict mime type configurations for mobile PWA support
+# CRITICAL PWA FIX: Served publicly from root with zero-cache to prevent login redirects
 @app.route('/sw.js')
 def service_worker():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    response = send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 @app.route('/manifest.json')
 def manifest():
-    return send_from_directory('static', 'manifest.json', mimetype='application/json')
+    response = send_from_directory('static', 'manifest.json', mimetype='application/json')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
-# Navigation Views
+# Page routing views
 @app.route('/')
 def index():
     if 'user_id' in session:
