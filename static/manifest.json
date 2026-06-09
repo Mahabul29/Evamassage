@@ -1,38 +1,14 @@
 {
-  "name": "EvaMassage Chat",
-  "short_name": "EvaMassage",
-  "description": "Connect and chat with amazing people",
+  "name": "EvaMassage",
+  "short_name": "Eva",
+  "description": "EvaMassage Chat Application",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#00a884",
-  "background_color": "#ffffff",
   "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#00a884",
   "icons": [
-    {
-      "src": "/static/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png"
-    },
-    {
-      "src": "/static/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png"
-    },
-    {
-      "src": "/static/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png"
-    },
-    {
-      "src": "/static/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png"
-    },
-    {
-      "src": "/static/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png"
-    },
     {
       "src": "/static/icon-192.png",
       "sizes": "192x192",
