@@ -1,6 +1,6 @@
-const CACHE_NAME = 'evamassage-v2';
+const CACHE_NAME = 'evamassage-v3';
 
-// FIX: Only cache files that definitely exist (removed /dashboard /profile /settings)
+// Only cache files that definitely exist
 const urlsToCache = [
     '/',
     '/static/css/style.css'
@@ -17,7 +17,7 @@ self.addEventListener('install', function(event) {
                 return self.skipWaiting();
             })
             .catch(function(err) {
-                console.log('Cache addAll failed:', err);
+                console.log('Cache failed:', err);
             })
     );
 });
@@ -29,13 +29,12 @@ self.addEventListener('activate', function(event) {
                 return Promise.all(
                     cacheNames.map(function(cache) {
                         if (cache !== CACHE_NAME) {
-                            console.log('Service Worker: Clearing Old Cache:', cache);
+                            console.log('Deleting old cache:', cache);
                             return caches.delete(cache);
                         }
                     })
                 );
             }),
-            // FIX: Take control of all pages immediately
             self.clients.claim()
         ])
     );
@@ -50,9 +49,7 @@ self.addEventListener('fetch', function(event) {
         event.respondWith(
             fetch(event.request)
                 .then(function(response) {
-                    if (!response || response.status !== 200) {
-                        return response;
-                    }
+                    if (!response || response.status !== 200) return response;
                     return caches.open(CACHE_NAME).then(function(cache) {
                         cache.put(event.request, response.clone());
                         return response;
