@@ -3,16 +3,18 @@ from models.user import create_user, authenticate_user, get_user
 
 auth_bp = Blueprint('auth_bp', __name__)
 
-@auth_bp.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'GET':
-        if 'user_id' in session:
-            return redirect('/dashboard')
-        return render_template('register.html')
+@auth_bp.route('/register', methods=['GET'])
+def register_page():
+    if 'user_id' in session:
+        return redirect('/dashboard')
+    return render_template('login.html')
 
-    username = request.form.get('username', '').strip()
-    password = request.form.get('password', '').strip()
-    full_name = request.form.get('full_name', '').strip()
+@auth_bp.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json(silent=True) or {}
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    full_name = data.get('full_name', '').strip()
 
     if not username or not password:
         return jsonify({'success': False, 'error': 'Missing username or password'})
@@ -26,15 +28,17 @@ def register():
     else:
         return jsonify({'success': False, 'error': message})
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'GET':
-        if 'user_id' in session:
-            return redirect('/dashboard')
-        return render_template('login.html')
+@auth_bp.route('/login', methods=['GET'])
+def login_page():
+    if 'user_id' in session:
+        return redirect('/dashboard')
+    return render_template('login.html')
 
-    username = request.form.get('username', '').strip()
-    password = request.form.get('password', '').strip()
+@auth_bp.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json(silent=True) or {}
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
 
     user = authenticate_user(username, password)
     if user:
