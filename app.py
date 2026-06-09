@@ -1,7 +1,7 @@
 from flask import Flask, render_template, session, redirect, send_from_directory
 from config import SECRET_KEY, PORT
 from routes.auth import auth_bp
-from models.user import user_bp  # This is the user blueprint with routes
+from models.user import user_bp  
 from routes.message_routes import msg_bp
 from routes.channel_routes import channel_bp
 from routes.call_routes import call_bp
@@ -14,7 +14,7 @@ app.secret_key = SECRET_KEY
 
 # Register blueprints
 app.register_blueprint(auth_bp)
-app.register_blueprint(user_bp)  # Register user blueprint from models.user
+app.register_blueprint(user_bp)  
 app.register_blueprint(msg_bp)
 app.register_blueprint(channel_bp)
 app.register_blueprint(call_bp)
@@ -25,6 +25,7 @@ app.register_blueprint(file_bp)
 def serve_static(path):
     return send_from_directory('static', path)
 
+# Fixed root routes with explicit mimetypes for clean PWA install matching
 @app.route('/sw.js')
 def service_worker():
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
@@ -44,7 +45,6 @@ def index():
 def dashboard():
     if 'user_id' not in session:
         return redirect('/')
-    # Get fresh user data from DB
     user = db['users'].find_one({'user_id': session['user_id']})
     if user:
         session['full_name'] = user.get('full_name', session.get('full_name', ''))
@@ -55,11 +55,9 @@ def dashboard():
 def profile():
     if 'user_id' not in session:
         return redirect('/')
-    # FIX: Query database for user data
     user = db['users'].find_one({'user_id': session['user_id']})
     if not user:
         return redirect('/')
-    # Ensure all new fields have defaults
     user.setdefault('avatar', 'default')
     user.setdefault('language', 'en')
     user.setdefault('theme', 'light')
