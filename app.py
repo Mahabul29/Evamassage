@@ -20,12 +20,12 @@ app.register_blueprint(channel_bp)
 app.register_blueprint(call_bp)
 app.register_blueprint(file_bp)
 
-# Static files
+# Global static folder asset delivery rules
 @app.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory('static', path)
 
-# Fixed root routes with explicit mimetypes for clean PWA install matching
+# Root-routed endpoints with strict mime type configurations for mobile PWA support
 @app.route('/sw.js')
 def service_worker():
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
@@ -34,7 +34,7 @@ def service_worker():
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
-# Page routes
+# Navigation Views
 @app.route('/')
 def index():
     if 'user_id' in session:
