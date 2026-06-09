@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EvaMassage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root{
+            --bg:#f0f2f5;--sidebar:#fff;--chat-bg:#efeae2;
+            --inp:#fff;--txt:#111;--sub:#666;--bdr:#e0e0e0;
+            --recv:#fff;--sent:#dcf8c5;--hdr:#fff;--nav:#fff;
+            --hov:#f5f5f5;--srch:#f0f2f5;--ph:#aaa;
+            --accent:#00a884;--accent-dark:#075e54;
+            --theme-color:#e53935;
+        }
+        body.dark{
+            --bg:#111b21;--sidebar:#1f2c34;--chat-bg:#0b141a;
+            --inp:#2a3942;--txt:#e9edef;--sub:#8696a0;--bdr:#2a3942;
+            --recv:#202c33;--sent:#005c4b;--hdr:#1f2c34;--nav:#1f2c34;
+            --hov:#2a3942;--srch:#111b21;--ph:#8696a0;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;overflow:hidden;}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);transition:background .3s,color .3s;height:100dvh;}
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--nav);display:flex;padding:6px 0;border-top:1px solid var(--bdr);z-index:300;}
+        .nav-btn{flex:1;text-align:center;background:none;border:none;padding:6px 2px;color:var(--sub);cursor:pointer;transition:color .3s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+        .nav-btn.active{color:var(--accent);}
+        .nav-btn i{font-size:22px;display:block;}
+        .nav-btn span{font-size:11px;font-weight:500;}
+
+        /* ===== MAIN LAYOUT ===== */
+        .main-container{display:flex;position:fixed;top:0;left:0;right:0;bottom:60px;overflow:hidden;}
+        .tab-content{display:none;width:100%;height:100%;overflow-y:auto;flex-direction:column;}
+        .tab-content.active{display:flex;}
+
+        /* ===== CHAT AREA ===== */
+        .chat-area{flex:1;background:var(--chat-bg);display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;}
+        .chat-area.active{display:flex;}
+        .input-wrapper{background:var(--nav);border-top:1px solid var(--bdr);padding:8px 12px;flex-shrink:0;}
+        .input-area{display:flex;gap:8px;align-items:center;}
+        .input-area input{flex:1;padding:10px 16px;border:1px solid var(--bdr);border-radius:25px;outline:none;font-size:15px;background:var(--inp);color:var(--txt);}
+        .input-area .send-btn{background:var(--accent);border:none;color:#fff;width:42px;height:42px;border-radius:50%;cursor:pointer;}
+
+        /* ===== HEADERS ===== */
+        .app-header{background:var(--hdr);padding:14px 15px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bdr);flex-shrink:0;}
+        .app-header h1{font-size:20px;font-weight:700;margin:0;}
+        .app-header button{background:none;border:1px solid var(--bdr);border-radius:20px;padding:6px 12px;color:var(--txt);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+        .chat-header{background:var(--accent-dark);color:#fff;padding:14px 15px;display:flex;align-items:center;flex-shrink:0;}
+        .chat-header .back-btn{background:none;border:none;color:#fff;margin-right:10px;font-size:18px;}
+        .chat-header span{flex:1;font-weight:600;}
+
+        .messages-container{flex:1;overflow-y:auto;padding:15px;}
+        .msg{max-width:75%;margin-bottom:10px;padding:8px 12px;border-radius:18px;font-size:15px;}
+        .msg.sent{background:var(--sent);margin-left:auto;border-bottom-right-radius:4px;}
+        .msg.recv{background:var(--recv);border-bottom-left-radius:4px;}
+
+        .search-box{padding:10px;background:var(--sidebar);border-bottom:1px solid var(--bdr);flex-shrink:0;}
+        .search-box input{width:100%;padding:10px 16px;border:1px solid var(--bdr);border-radius:25px;background:var(--srch);color:var(--txt);outline:none;}
+        #chatList{flex:1;overflow-y:auto;}
+
+        .chat-item{display:flex;padding:12px 15px;border-bottom:1px solid var(--bdr);cursor:pointer;gap:12px;background:var(--sidebar);}
+        .avatar{width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px;flex-shrink:0;}
+        .empty-state{padding:50px;text-align:center;color:var(--sub);}
+
+        /* ===== FULLSCREEN OVERLAY (User Profile / Edit etc.) ===== */
+        .fullscreen-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:500;flex-direction:column;overflow-y:auto;}
+        .fullscreen-overlay.show{display:flex;}
+        .fs-header{background:var(--accent);color:#fff;padding:50px 20px 30px;text-align:center;position:relative;}
+        .fs-back-btn{position:absolute;top:15px;left:15px;background:rgba(255,255,255,0.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;}
+        .fs-avatar{width:100px;height:100px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 15px;font-size:50px;color:var(--accent);overflow:hidden;}
+        .fs-avatar img{width:100%;height:100%;object-fit:cover;}
+        .fs-name{font-size:24px;font-weight:700;color:#fff;}
+        .fs-username{font-size:14px;opacity:0.9;color:#fff;margin-top:5px;}
+        .fs-content{padding:20px 15px;}
+        .fs-card{background:var(--sidebar);border-radius:16px;border:1px solid var(--bdr);margin-bottom:20px;}
+        .fs-row{display:flex;align-items:center;padding:14px 16px;gap:14px;cursor:pointer;border-bottom:1px solid var(--bdr);}
+        .fs-row:last-child{border-bottom:none;}
+        .fs-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+        .fs-icon.blue{background:rgba(30,136,229,0.15);color:#1e88e5;}
+        .fs-icon.green{background:rgba(0,168,132,0.15);color:var(--accent);}
+        .fs-icon.red{background:rgba(229,57,53,0.15);color:#e53935;}
+        .fs-icon.orange{background:rgba(255,112,67,0.15);color:#ff7043;}
+        .fs-icon.purple{background:rgba(156,39,176,0.15);color:#9c27b0;}
+        .fs-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px;padding-left:4px;}
+        .fs-section-label.danger-label{color:#e53935;}
+
+        /* ===== SETTINGS TAB ===== */
+        .settings-page-header{background:linear-gradient(135deg,var(--theme-color) 0%,#b71c1c 100%);color:#fff;padding:50px 20px 30px;text-align:center;flex-shrink:0;}
+        .settings-page-header h2{font-size:26px;font-weight:800;margin:0;}
+        .settings-page-header p{opacity:0.9;font-size:13px;margin-top:4px;}
+        .settings-section{padding:15px 15px 0;}
+        .settings-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px;padding-left:2px;}
+        .settings-card{background:var(--sidebar);border-radius:16px;border:1px solid var(--bdr);margin-bottom:20px;overflow:hidden;}
+        .settings-row{display:flex;align-items:center;padding:14px 16px;gap:14px;cursor:pointer;border-bottom:1px solid var(--bdr);}
+        .settings-row:last-child{border-bottom:none;}
+        .settings-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+        .settings-icon.blue{background:rgba(30,136,229,0.12);color:#1e88e5;}
+        .settings-icon.green{background:rgba(0,168,132,0.12);color:var(--accent);}
+        .settings-icon.red{background:rgba(229,57,53,0.12);color:#e53935;}
+        .settings-icon.orange{background:rgba(255,112,67,0.12);color:#ff7043;}
+        .settings-icon.purple{background:rgba(156,39,176,0.12);color:#9c27b0;}
+        .settings-icon.yellow{background:rgba(255,193,7,0.12);color:#ffc107;}
+        .settings-icon.teal{background:rgba(0,188,212,0.12);color:#00bcd4;}
+        .settings-icon.pink{background:rgba(233,30,99,0.12);color:#e91e63;}
+        .settings-row-text{flex:1;}
+        .settings-row-text h4{font-size:15px;font-weight:600;margin:0;color:var(--txt);}
+        .settings-row-text p{font-size:12px;color:var(--sub);margin:2px 0 0;}
+        .settings-row-value{font-size:13px;color:var(--sub);margin-right:6px;}
+
+        /* ===== TOGGLE ===== */
+        .toggle-switch{position:relative;width:50px;height:28px;background:#ccc;border-radius:14px;cursor:pointer;flex-shrink:0;}
+        .toggle-switch.on{background:var(--accent);}
+        .toggle-switch::after{content:'';position:absolute;width:24px;height:24px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform .3s;}
+        .toggle-switch.on::after{transform:translateX(22px);}
+
+        /* ===== PROFILE TAB ===== */
+        .profile-hero{background:linear-gradient(135deg,var(--accent-dark) 0%,var(--accent) 100%);padding:50px 20px 30px;text-align:center;flex-shrink:0;position:relative;}
+        .profile-dp-wrap{width:110px;height:110px;border-radius:50%;border:4px solid rgba(255,255,255,0.5);margin:0 auto 14px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:70px;overflow:hidden;cursor:pointer;position:relative;}
+        .profile-dp-wrap img{width:100%;height:100%;object-fit:cover;}
+        .profile-dp-change{position:absolute;bottom:0;right:0;width:30px;height:30px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;border:2px solid #fff;}
+        .profile-hero h2{color:#fff;font-size:22px;font-weight:700;margin:0;}
+        .profile-hero p{color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;}
+        .profile-link{display:inline-block;margin-top:8px;background:rgba(255,255,255,0.2);color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;text-decoration:none;cursor:pointer;}
+
+        /* ===== CHANNELS ===== */
+        .ch-hero{position:relative;overflow:hidden;padding:0;flex-shrink:0;}
+        .ch-hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,var(--accent-dark) 0%,var(--accent) 60%,#00c9a7 100%);z-index:0;}
+        .ch-hero-bg::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");}
+        .ch-hero-content{position:relative;z-index:1;display:flex;align-items:center;gap:14px;padding:16px 15px 14px;}
+        .ch-hero-icon{width:44px;height:44px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;}
+        .ch-hero-text{flex:1;}
+        .ch-hero-text h1{color:#fff;font-size:22px;font-weight:800;margin:0;}
+        .ch-hero-text p{color:rgba(255,255,255,0.8);font-size:13px;margin:0;}
+        .ch-new-btn{width:40px;height:40px;background:rgba(255,255,255,0.25);border:none;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+        .ch-search-wrap{position:relative;padding:10px 14px;background:var(--sidebar);border-bottom:1px solid var(--bdr);flex-shrink:0;}
+        .ch-search-icon{position:absolute;left:26px;top:50%;transform:translateY(-50%);color:var(--ph);font-size:14px;}
+        .ch-search-input{width:100%;padding:10px 16px 10px 36px;border:none;border-radius:22px;background:var(--srch);color:var(--txt);font-size:14px;outline:none;}
+        #channelsList{flex:1;overflow-y:auto;}
+        .ch-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 30px;text-align:center;color:var(--sub);}
+        .ch-empty-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--accent),#00c9a7);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:34px;color:#fff;margin-bottom:20px;}
+        .ch-empty-state h3{font-size:18px;font-weight:700;color:var(--txt);margin-bottom:8px;}
+        .ch-empty-state p{font-size:14px;line-height:1.5;max-width:240px;}
+        .ch-create-btn{margin-top:20px;background:var(--accent);color:#fff;border:none;padding:12px 24px;border-radius:24px;font-size:14px;font-weight:600;cursor:pointer;}
+
+        /* ===== MODAL ===== */
+        .modal-content{border-radius:15px;background:var(--sidebar);color:var(--txt);border:1px solid var(--bdr);}
+        .modal-header,.modal-footer{border-color:var(--bdr);}
+        .form-control-em{width:100%;padding:12px 14px;border:1px solid var(--bdr);border-radius:10px;background:var(--inp);color:var(--txt);font-size:15px;outline:none;margin-bottom:12px;}
+        .form-control-em:focus{border-color:var(--accent);}
+        .btn-em-primary{background:var(--accent);color:#fff;border:none;padding:12px 20px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;width:100%;}
+        .btn-em-secondary{background:var(--bg);color:var(--txt);border:1px solid var(--bdr);padding:12px 20px;border-radius:10px;font-size:15px;cursor:pointer;width:100%;}
+
+        /* ===== COLOUR PICKER ===== */
+        .color-picker-grid{display:flex;flex-wrap:wrap;gap:10px;padding:15px;}
+        .color-swatch{width:42px;height:42px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .2s,border-color .2s;}
+        .color-swatch.selected{border-color:var(--txt);transform:scale(1.15);}
+
+        /* ===== TEXT SIZE ===== */
+        .text-size-row{display:flex;align-items:center;gap:12px;padding:14px 16px;}
+        .text-size-btn{flex:1;text-align:center;padding:8px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--bg);color:var(--txt);cursor:pointer;font-weight:600;}
+        .text-size-btn.active{border-color:var(--accent);background:rgba(0,168,132,0.1);color:var(--accent);}
+
+        /* ===== AVATAR PICKER ===== */
+        .avatar-grid{display:flex;flex-wrap:wrap;gap:10px;padding:15px;justify-content:center;}
+        .avatar-opt{width:70px;height:70px;border-radius:50%;font-size:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:3px solid transparent;transition:transform .2s,border-color .2s;background:var(--bg);}
+        .avatar-opt.selected{border-color:var(--accent);transform:scale(1.1);}
+
+        /* ===== TOAST ===== */
+        .toast-msg{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:25px;font-size:14px;z-index:4000;opacity:0;transition:opacity .3s;pointer-events:none;}
+        .toast-msg.show{opacity:1;}
+
+        /* ===== CALL OVERLAYS ===== */
+        #incomingCallOverlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:2000;flex-direction:column;align-items:center;justify-content:center;color:#fff;}
+        #incomingCallOverlay.show{display:flex;}
+        .call-avatar-ring{width:100px;height:100px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff;animation:pulse-ring 1.5s infinite;}
+        @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(0,168,132,0.7);}70%{box-shadow:0 0 0 20px rgba(0,168,132,0);}100%{box-shadow:0 0 0 0 rgba(0,168,132,0);}}
+        .btn-accept{background:#25d366;width:64px;height:64px;border-radius:50%;border:none;color:#fff;font-size:22px;}
+        .btn-reject{background:#e53935;width:64px;height:64px;border-radius:50%;border:none;color:#fff;font-size:22px;}
+        #activeCallScreen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#1a1a2e;z-index:2000;flex-direction:column;align-items:center;justify-content:space-between;padding:60px 20px 50px;color:#fff;}
+        #activeCallScreen.show{display:flex;}
+        .ctrl-btn{width:56px;height:56px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:20px;}
+        .btn-end-call{background:#e53935;width:68px;height:68px;border-radius:50%;border:none;color:#fff;font-size:24px;}
+
+        /* ===== ATTACH MENU ===== */
+        .attach-menu{position:fixed;bottom:120px;left:12px;background:var(--sidebar);border:1px solid var(--bdr);border-radius:16px;padding:10px;display:none;z-index:400;}
+        .attach-menu.show{display:flex;gap:8px;}
+        .attach-opt{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:10px 14px;color:var(--txt);font-size:12px;}
+
+        /* ===== IMAGE LIGHTBOX ===== */
+        #imgLightbox{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:3000;align-items:center;justify-content:center;}
+        #imgLightbox.show{display:flex;}
+    </style>
+</head>
+<body>
+
+<!-- ============ MAIN CONTAINER ============ -->
+<div class="main-container">
+
+    <!-- ===== CHATS TAB ===== -->
+    <div id="chatsTab" class="tab-content active">
+        <div class="app-header">
+            <h1>EvaMassage</h1>
+            <button onclick="toggleTheme()"><i class="fas fa-moon" id="themeIcon"></i> <span id="themeLabel">Dark</span></button>
+        </div>
+        <div class="search-box"><input type="text" id="searchInput" placeholder="Search users..." oninput="searchUsers(this.value)"></div>
+        <div id="chatList"><div class="empty-state"><i class="fas fa-comments" style="font-size:40px;margin-bottom:10px;display:block;"></i>No chats yet</div></div>
+    </div>
+
+    <!-- ===== CHANNELS TAB ===== -->
+    <div id="channelsTab" class="tab-content">
+        <div class="ch-hero">
+            <div class="ch-hero-bg"></div>
+            <div class="ch-hero-content">
+                <div class="ch-hero-icon"><i class="fas fa-hashtag"></i></div>
+                <div class="ch-hero-text">
+                    <h1>Channels</h1>
+                    <p>Broadcast to your audience</p>
+                </div>
+                <button class="ch-new-btn" onclick="showChannelModal()"><i class="fas fa-plus"></i></button>
+            </div>
+        </div>
+        <div class="ch-search-wrap">
+            <i class="fas fa-search ch-search-icon"></i>
+            <input type="text" class="ch-search-input" placeholder="Search channels...">
+        </div>
+        <div id="channelsList">
+            <div class="ch-empty-state">
+                <div class="ch-empty-icon"><i class="fas fa-hashtag"></i></div>
+                <h3>No channels yet</h3>
+                <p>Create a channel to broadcast messages to your followers</p>
+                <button class="ch-create-btn" onclick="showChannelModal()"><i class="fas fa-plus"></i> Create Channel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PROFILE TAB ===== -->
+    <div id="profileTab" class="tab-content">
+        <div class="profile-hero">
+            <div class="profile-dp-wrap" id="profileDpWrap" onclick="openAvatarPicker()">
+                <span id="profileDpEmoji">👤</span>
+                <div class="profile-dp-change"><i class="fas fa-camera"></i></div>
+            </div>
+            <h2 id="profileDisplayName">My Profile</h2>
+            <p id="profileDisplayUsername">@username</p>
+            <span class="profile-link" onclick="copyProfileLink()"><i class="fas fa-link"></i> evamassage.app/u/<span id="profileLinkUser">username</span></span>
+        </div>
+        <div style="padding:15px;">
+            <div class="fs-section-label">Account</div>
+            <div class="fs-card">
+                <div class="fs-row" onclick="openEditProfile()">
+                    <div class="fs-icon blue"><i class="fas fa-user-edit"></i></div>
+                    <div style="flex:1;"><h4 style="margin:0;font-size:15px;font-weight:600;">Edit Profile</h4><p style="margin:0;color:var(--sub);font-size:12px;">Name, username, bio</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+                <div class="fs-row" onclick="switchTab('settings')">
+                    <div class="fs-icon green"><i class="fas fa-cog"></i></div>
+                    <div style="flex:1;"><h4 style="margin:0;font-size:15px;font-weight:600;">App Settings</h4><p style="margin:0;color:var(--sub);font-size:12px;">Notifications, privacy, language</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+                <div class="fs-row" onclick="confirmLogout()">
+                    <div class="fs-icon red"><i class="fas fa-sign-out-alt"></i></div>
+                    <div style="flex:1;"><h4 style="margin:0;font-size:15px;font-weight:600;">Logout</h4><p style="margin:0;color:var(--sub);font-size:12px;">Sign out of your account</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SETTINGS TAB ===== -->
+    <div id="settingsTab" class="tab-content">
+        <div class="settings-page-header">
+            <h2>Settings</h2>
+            <p>Manage your account and preferences</p>
+        </div>
+        <div class="settings-section">
+
+            <!-- ACCOUNT -->
+            <div class="settings-label">Account</div>
+            <div class="settings-card">
+                <div class="settings-row" onclick="openEditProfile()">
+                    <div class="settings-icon blue"><i class="fas fa-user-edit"></i></div>
+                    <div class="settings-row-text"><h4>Edit Profile</h4><p>Name, username, avatar, bio</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+                <div class="settings-row" onclick="openChangePassword()">
+                    <div class="settings-icon green"><i class="fas fa-key"></i></div>
+                    <div class="settings-row-text"><h4>Change Password</h4><p>Update your password</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+            </div>
+
+            <!-- PREFERENCES -->
+            <div class="settings-label">Preferences</div>
+            <div class="settings-card">
+                <div class="settings-row" onclick="toggleTheme()">
+                    <div class="settings-icon purple"><i class="fas fa-moon" id="settingsThemeIcon"></i></div>
+                    <div class="settings-row-text"><h4>Dark Mode</h4><p>Switch between light and dark</p></div>
+                    <div class="toggle-switch" id="themeToggle" onclick="event.stopPropagation();toggleTheme()"></div>
+                </div>
+                <div class="settings-row" onclick="openNotifSettings()">
+                    <div class="settings-icon orange"><i class="fas fa-bell"></i></div>
+                    <div class="settings-row-text"><h4>Notifications</h4><p>Manage alerts and sounds</p></div>
+                    <div class="toggle-switch on" id="notifToggle" onclick="event.stopPropagation();toggleNotif()"></div>
+                </div>
+                <div class="settings-row" onclick="openTextSize()">
+                    <div class="settings-icon teal"><i class="fas fa-text-height"></i></div>
+                    <div class="settings-row-text"><h4>Text Size</h4><p>Adjust message font size</p></div>
+                    <span class="settings-row-value" id="textSizeLabel">Medium</span>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+                <div class="settings-row" onclick="openThemeColor()">
+                    <div class="settings-icon pink"><i class="fas fa-palette"></i></div>
+                    <div class="settings-row-text"><h4>Theme Color</h4><p>Change app accent color</p></div>
+                    <div id="themeColorDot" style="width:22px;height:22px;border-radius:50%;background:var(--theme-color);border:2px solid var(--bdr);margin-right:6px;"></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+            </div>
+
+            <!-- TOOLS -->
+            <div class="settings-label">Tools</div>
+            <div class="settings-card">
+                <div class="settings-row" onclick="openLanguage()">
+                    <div class="settings-icon blue"><i class="fas fa-globe"></i></div>
+                    <div class="settings-row-text"><h4>Language</h4><p>Set your preferred language</p></div>
+                    <span class="settings-row-value" id="langLabel">English</span>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+                <div class="settings-row" onclick="openPrivacy()">
+                    <div class="settings-icon green"><i class="fas fa-shield-alt"></i></div>
+                    <div class="settings-row-text"><h4>Privacy</h4><p>Last seen, read receipts</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+                <div class="settings-row" onclick="openStorage()">
+                    <div class="settings-icon yellow"><i class="fas fa-hdd"></i></div>
+                    <div class="settings-row-text"><h4>Storage & Data</h4><p>Manage cache and media</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+                <div class="settings-row" onclick="openHelp()">
+                    <div class="settings-icon teal"><i class="fas fa-question-circle"></i></div>
+                    <div class="settings-row-text"><h4>Help & Support</h4><p>FAQ and contact us</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+            </div>
+
+            <!-- DANGER ZONE -->
+            <div class="settings-label" style="color:#e53935;">Danger Zone</div>
+            <div class="settings-card">
+                <div class="settings-row" onclick="confirmDeleteAccount()">
+                    <div class="settings-icon red"><i class="fas fa-trash-alt"></i></div>
+                    <div class="settings-row-text"><h4 style="color:#e53935;">Delete Account</h4><p>Permanently remove your data</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+                <div class="settings-row" onclick="confirmLogout()">
+                    <div class="settings-icon red"><i class="fas fa-sign-out-alt"></i></div>
+                    <div class="settings-row-text"><h4>Logout</h4><p>Sign out of your account</p></div>
+                    <i class="fas fa-chevron-right" style="color:var(--sub);font-size:13px;"></i>
+                </div>
+            </div>
+        </div>
+        <div style="height:20px;"></div>
+    </div>
+
+    <!-- ===== CHAT AREA (opens over everything) ===== -->
+    <div id="chatArea" class="chat-area">
+        <div class="chat-header">
+            <button class="back-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></button>
+            <span id="chatName">Chat</span>
+            <button style="background:none;border:none;color:#fff;font-size:18px;" onclick="startCall('audio')"><i class="fas fa-phone"></i></button>
+            <button style="background:none;border:none;color:#fff;font-size:18px;margin-left:10px;" onclick="startCall('video')"><i class="fas fa-video"></i></button>
+        </div>
+        <div class="messages-container" id="messagesContainer"></div>
+        <div class="input-wrapper">
+            <div class="input-area">
+                <button style="background:none;border:none;color:var(--sub);font-size:22px;" onclick="toggleAttach()"><i class="fas fa-paperclip"></i></button>
+                <input type="text" id="msgInput" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMessage()">
+                <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end main-container -->
+
+<!-- ===== BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+    <button class="nav-btn active" id="navChats" onclick="switchTab('chats')">
+        <i class="fas fa-comment-dots"></i><span>Chats</span>
+    </button>
+    <button class="nav-btn" id="navChannels" onclick="switchTab('channels')">
+        <i class="fas fa-hashtag"></i><span>Channels</span>
+    </button>
+    <button class="nav-btn" id="navProfile" onclick="switchTab('profile')">
+        <i class="fas fa-user"></i><span>Profile</span>
+    </button>
+    <button class="nav-btn" id="navSettings" onclick="switchTab('settings')">
+        <i class="fas fa-cog"></i><span>Settings</span>
+    </button>
+</nav>
+
+<!-- ===== FULLSCREEN OVERLAYS ===== -->
+
+<!-- Edit Profile Overlay -->
+<div class="fullscreen-overlay" id="editProfileOverlay">
+    <div class="fs-header">
+        <button class="fs-back-btn" onclick="closeOverlay('editProfileOverlay')"><i class="fas fa-arrow-left"></i></button>
+        <div class="fs-avatar" id="editAvatarPreview" onclick="openAvatarPicker()">👤</div>
+        <div class="fs-name">Edit Profile</div>
+        <div class="fs-username">Tap avatar to change</div>
+    </div>
+    <div class="fs-content">
+        <div class="fs-card">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--bdr);">
+                <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:6px;display:block;">Full Name</label>
+                <input type="text" id="editFullName" class="form-control-em" style="margin:0;" placeholder="Your full name">
+            </div>
+            <div style="padding:14px 16px;border-bottom:1px solid var(--bdr);">
+                <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:6px;display:block;">Username</label>
+                <input type="text" id="editUsername" class="form-control-em" style="margin:0;" placeholder="@username">
+            </div>
+            <div style="padding:14px 16px;">
+                <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:6px;display:block;">Bio</label>
+                <textarea id="editBio" class="form-control-em" style="margin:0;height:80px;resize:none;" placeholder="Tell something about yourself..."></textarea>
+            </div>
+        </div>
+        <button class="btn-em-primary" onclick="saveProfile()"><i class="fas fa-save"></i> Save Changes</button>
+    </div>
+</div>
+
+<!-- Avatar Picker Overlay -->
+<div class="fullscreen-overlay" id="avatarPickerOverlay">
+    <div class="fs-header" style="background:var(--accent-dark);">
+        <button class="fs-back-btn" onclick="closeOverlay('avatarPickerOverlay')"><i class="fas fa-arrow-left"></i></button>
+        <div class="fs-name">Choose Avatar</div>
+        <div class="fs-username">Pick your profile picture</div>
+    </div>
+    <div class="fs-content">
+        <div class="fs-section-label">Default Avatars</div>
+        <div class="avatar-grid" id="avatarGrid"></div>
+        <div class="fs-section-label" style="margin-top:10px;">Upload Custom</div>
+        <div class="fs-card">
+            <div class="fs-row" onclick="document.getElementById('avatarFileInput').click()">
+                <div class="fs-icon green"><i class="fas fa-upload"></i></div>
+                <div style="flex:1;"><h4 style="margin:0;font-size:15px;">Upload from Gallery</h4><p style="margin:0;color:var(--sub);font-size:12px;">JPG, PNG supported</p></div>
+            </div>
+        </div>
+        <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
+    </div>
+</div>
+
+<!-- Change Password Overlay -->
+<div class="fullscreen-overlay" id="changePasswordOverlay">
+    <div class="fs-header" style="background:#1565c0;">
+        <button class="fs-back-btn" onclick="closeOverlay('changePasswordOverlay')"><i class="fas fa-arrow-left"></i></button>
+        <div style="font-size:40px;margin-bottom:10px;">🔐</div>
+        <div class="fs-name">Change Password</div>
+    </div>
+    <div class="fs-content">
+        <div class="fs-card">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--bdr);">
+                <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:6px;display:block;">Current Password</label>
+                <input type="password" id="curPass" class="form-control-em" style="margin:0;" placeholder="Current password">
+            </div>
+            <div style="padding:14px 16px;border-bottom:1px solid var(--bdr);">
+                <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:6px;display:block;">New Password</label>
+                <input type="password" id="newPass" class="form-control-em" style="margin:0;" placeholder="Min 6 characters">
+            </div>
+            <div style="padding:14px 16px;">
+                <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:6px;display:block;">Confirm New Password</label>
+                <input type="password" id="confirmPass" class="form-control-em" style="margin:0;" placeholder="Repeat new password">
+            </div>
+        </div>
+        <button class="btn-em-primary" onclick="changePassword()"><i class="fas fa-key"></i> Update Password</button>
+    </div>
+</div>
+
+<!-- Theme Color Overlay -->
+<div class="fullscreen-overlay" id="themeColorOverlay">
+    <div class="fs-header" style="background:var(--theme-color);">
+        <button class="fs-back-btn" onclick="closeOverlay('themeColorOverlay')"><i class="fas fa-arrow-left"></i></button>
+        <div style="font-size:40px;margin-bottom:10px;">🎨</div>
+        <div class="fs-name">Theme Color</div>
+        <div class="fs-username">Choose your background color</div>
+    </div>
+    <div class="fs-content">
+        <div class="fs-section-label">Settings Header Color</div>
+        <div class="fs-card">
+            <div class="color-picker-grid" id="colorGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Language Overlay -->
+<div class="fullscreen-overlay" id="languageOverlay">
+    <div class="fs-header" style="background:#1565c0;">
+        <button class="fs-back-btn" onclick="closeOverlay('languageOverlay')"><i class="fas fa-arrow-left"></i></button>
+        <div style="font-size:40px;margin-bottom:10px;">🌐</div>
+        <div class="fs-name">Language</div>
+        <div class="fs-username">Set your preferred language</div>
+    </div>
+    <div class="fs-content">
+        <div class="fs-card" id="langList"></div>
+    </div>
+</div>
+
+<!-- Text Size Overlay -->
+<div class="fullscreen-overlay" id="textSizeOverlay">
+    <div class="fs-header" style="background:#00695c;">
+        <button class="fs-back-btn" onclick="closeOverlay('textSizeOverlay')"><i class="fas fa-arrow-left"></i></button>
+        <div style="font-size:40px;margin-bottom:10px;">📝</div>
+        <div class="fs-name">Text Size</div>
+        <div class="fs-username">Adjust chat font size</div>
+    </div>
+    <div class="fs-content">
+        <div class="fs-section-label">Preview</div>
+        <div class="fs-card" style="padding:16px;">
+            <p id="textSizePreview" style="color:var(--txt);">This is how your messages will look with the selected font size.</p>
+        </div>
+        <div class="fs-section-label">Choose Size</div>
+        <div class="fs-card">
+            <div class="text-size-row">
+                <button class="text-size-btn" style="font-size:12px;" onclick="setTextSize('small','Small',12)">Small</button>
+                <button class="text-size-btn active" style="font-size:15px;" onclick="setTextSize('medium','Medium',15)" id="tsM">Medium</button>
+                <button class="text-size-btn" style="font-size:18px;" onclick="setTextSize('large','Large',18)">Large</button>
+                <button class="text-size-btn" style="font-size:22px;" onclick="setTextSize('xlarge','X-Large',22)">XL</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Overlay -->
+<div class="fullscreen-overlay" id="deleteAccountOverlay">
+    <div class="fs-header" style="background:#c62828;">
+        <button class="fs-back-btn" onclick="closeOverlay('deleteAccountOverlay')"><i class="fas fa-arrow-left"></i></button>
+        <div style="font-size:40px;margin-bottom:10px;">⚠️</div>
+        <div class="fs-name">Delete Account</div>
+        <div class="fs-username">This cannot be undone</div>
+    </div>
+    <div class="fs-content">
+        <div class="fs-card" style="padding:16px;">
+            <p style="color:var(--txt);font-size:15px;line-height:1.5;">All your messages, channels, and account data will be permanently deleted. This action <strong>cannot be undone</strong>.</p>
+        </div>
+        <div class="fs-card">
+            <div style="padding:14px 16px;">
+                <label style="font-size:13px;color:var(--sub);margin-bottom:8px;display:block;">Type <strong style="color:#e53935;">DELETE</strong> to confirm</label>
+                <input type="text" id="deleteConfirmInput" class="form-control-em" style="margin:0;" placeholder="DELETE">
+            </div>
+        </div>
+        <button class="btn-em-primary" style="background:#e53935;" onclick="deleteAccount()"><i class="fas fa-trash-alt"></i> Permanently Delete</button>
+        <div style="height:12px;"></div>
+        <button class="btn-em-secondary" onclick="closeOverlay('deleteAccountOverlay')">Cancel</button>
+    </div>
+</div>
+
+<!-- ===== TOASTS & MISC ===== -->
+<div class="toast-msg" id="toastMsg"></div>
+
+<div id="incomingCallOverlay">
+    <div class="call-avatar-ring"><i class="fas fa-user" style="font-size:40px;"></i></div>
+    <p style="margin-top:16px;font-size:20px;font-weight:600;" id="callerName">Caller</p>
+    <p style="color:#aaa;font-size:14px;" id="callType">Voice Call</p>
+    <div style="display:flex;gap:40px;margin-top:40px;">
+        <button class="btn-reject" onclick="rejectCall()"><i class="fas fa-phone-slash"></i></button>
+        <button class="btn-accept" onclick="acceptCall()"><i class="fas fa-phone"></i></button>
+    </div>
+</div>
+
+<div id="activeCallScreen">
+    <div style="text-align:center;">
+        <div class="call-avatar-ring" style="margin:0 auto;"><i class="fas fa-user" style="font-size:40px;"></i></div>
+        <p style="font-size:22px;font-weight:700;margin-top:16px;" id="activeCallName">Name</p>
+        <p class="call-timer" id="callTimer">00:00</p>
+    </div>
+    <div style="display:flex;gap:24px;justify-content:center;">
+        <button class="ctrl-btn" id="btnMute" onclick="toggleMute()"><i class="fas fa-microphone"></i></button>
+        <button class="ctrl-btn" id="btnSpk" onclick="toggleSpeaker()"><i class="fas fa-volume-up"></i></button>
+    </div>
+    <button class="btn-end-call" onclick="endCall()"><i class="fas fa-phone-slash"></i></button>
+</div>
+
+<div id="imgLightbox" onclick="this.classList.remove('show')">
+    <img id="lightboxImg" style="max-width:95%;max-height:95%;border-radius:8px;" src="">
+</div>
+
+<div class="attach-menu" id="attachMenu">
+    <button class="attach-opt" onclick="attachFile('image')"><i class="fas fa-image" style="font-size:22px;color:#7c4dff;"></i>Photo</button>
+    <button class="attach-opt" onclick="attachFile('file')"><i class="fas fa-file" style="font-size:22px;color:#0288d1;"></i>File</button>
+    <button class="attach-opt" onclick="attachFile('audio')"><i class="fas fa-microphone" style="font-size:22px;color:#e53935;"></i>Audio</button>
+</div>
+
+<!-- ===== CHANNEL MODAL ===== -->
+<div class="modal fade" id="channelModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style="color:var(--txt);font-weight:700;">Create Channel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="channelName" class="form-control-em" placeholder="Channel name">
+                <textarea id="channelDesc" class="form-control-em" style="height:80px;resize:none;" placeholder="Description (optional)"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-em-secondary" data-bs-dismiss="modal" style="width:auto;padding:10px 20px;">Cancel</button>
+                <button class="btn-em-primary" style="width:auto;padding:10px 20px;" onclick="createChannel()">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+let currentUser = {{ user | tojson }};
+let currentChatId = null;
+let currentChatName = '';
+let darkMode = localStorage.getItem('darkMode') === 'true';
+let notifEnabled = localStorage.getItem('notif') !== 'false';
+let selectedAvatar = localStorage.getItem('avatar') || '👤';
+let currentLang = localStorage.getItem('lang') || 'en';
+let currentTextSize = localStorage.getItem('textSize') || 'medium';
+let currentTextSizePx = parseInt(localStorage.getItem('textSizePx') || '15');
+let themeColor = localStorage.getItem('themeColor') || '#e53935';
+let msgPollInterval = null;
+let callTimer = null;
+let callSeconds = 0;
+
+// ============================================================
+//  INIT
+// ============================================================
+const AVATARS = ['👤','😀','😎','🐱','🦊','🦁','🐸','🌟','🔥','💎','🌈','🎮','🎸','⚡','🌸'];
+const COLORS = ['#e53935','#d81b60','#8e24aa','#3949ab','#1e88e5','#039be5','#00897b','#43a047','#f4511e','#fb8c00','#fdd835','#6d4c41','#546e7a','#000000','#ffffff'];
+const LANGUAGES = [
+    {code:'en',name:'English',flag:'🇺🇸'},
+    {code:'es',name:'Español',flag:'🇪🇸'},
+    {code:'fr',name:'Français',flag:'🇫🇷'},
+    {code:'de',name:'Deutsch',flag:'🇩🇪'},
+    {code:'ar',name:'العربية',flag:'🇸🇦'},
+    {code:'zh',name:'中文',flag:'🇨🇳'},
+    {code:'hi',name:'हिन्दी',flag:'🇮🇳'},
+    {code:'pt',name:'Português',flag:'🇧🇷'},
+    {code:'ru',name:'Русский',flag:'🇷🇺'},
+    {code:'ja',name:'日本語',flag:'🇯🇵'},
+    {code:'ko',name:'한국어',flag:'🇰🇷'},
+    {code:'tr',name:'Türkçe',flag:'🇹🇷'},
+    {code:'bn',name:'বাংলা',flag:'🇧🇩'},
+    {code:'id',name:'Bahasa Indonesia',flag:'🇮🇩'},
+    {code:'ur',name:'اردو',flag:'🇵🇰'},
+];
+
+document.addEventListener('DOMContentLoaded', function() {
+    applyDarkMode(false);
+    applyThemeColor(themeColor, false);
+    applyTextSize(currentTextSizePx, false);
+    updateProfileUI();
+    buildAvatarGrid();
+    buildColorGrid();
+    buildLangList();
+    if(notifEnabled) document.getElementById('notifToggle').classList.add('on');
+    loadChats();
+    loadChannels();
+});
+
+// ============================================================
+//  TAB SWITCHING
+// ============================================================
+function switchTab(tab) {
+    ['chats','channels','profile','settings'].forEach(t => {
+        document.getElementById(t+'Tab').classList.remove('active');
+        document.getElementById('nav'+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove('active');
+    });
+    document.getElementById(tab+'Tab').classList.add('active');
+    document.getElementById('nav'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+}
+
+// ============================================================
+//  DARK MODE
+// ============================================================
+function toggleTheme() {
+    darkMode = !darkMode;
+    localStorage.setItem('darkMode', darkMode);
+    applyDarkMode(true);
+}
+function applyDarkMode(animate) {
+    document.body.classList.toggle('dark', darkMode);
+    const icon = document.getElementById('themeIcon');
+    const label = document.getElementById('themeLabel');
+    const sIcon = document.getElementById('settingsThemeIcon');
+    const toggle = document.getElementById('themeToggle');
+    if(icon) icon.className = darkMode ? 'fas fa-sun' : 'fas fa-moon';
+    if(label) label.textContent = darkMode ? 'Light' : 'Dark';
+    if(sIcon) sIcon.className = darkMode ? 'fas fa-sun' : 'fas fa-moon';
+    if(toggle) toggle.classList.toggle('on', darkMode);
+}
+
+// ============================================================
+//  THEME COLOR
+// ============================================================
+function openThemeColor() { openOverlay('themeColorOverlay'); }
+function buildColorGrid() {
+    const grid = document.getElementById('colorGrid');
+    grid.innerHTML = COLORS.map(c =>
+        `<div class="color-swatch ${c===themeColor?'selected':''}" style="background:${c};" onclick="setThemeColor('${c}')"></div>`
+    ).join('');
+}
+function setThemeColor(color) {
+    themeColor = color;
+    localStorage.setItem('themeColor', color);
+    applyThemeColor(color, true);
+    buildColorGrid();
+}
+function applyThemeColor(color, animate) {
+    document.documentElement.style.setProperty('--theme-color', color);
+    document.getElementById('themeColorDot').style.background = color;
+}
+
+// ============================================================
+//  NOTIFICATIONS
+// ============================================================
+function toggleNotif() {
+    notifEnabled = !notifEnabled;
+    localStorage.setItem('notif', notifEnabled);
+    document.getElementById('notifToggle').classList.toggle('on', notifEnabled);
+    showToast(notifEnabled ? 'Notifications enabled' : 'Notifications disabled');
+}
+function openNotifSettings() { showToast('Notification settings coming soon'); }
+
+// ============================================================
+//  TEXT SIZE
+// ============================================================
+function openTextSize() { openOverlay('textSizeOverlay'); }
+function setTextSize(size, label, px) {
+    currentTextSize = size;
+    currentTextSizePx = px;
+    localStorage.setItem('textSize', size);
+    localStorage.setItem('textSizePx', px);
+    document.getElementById('textSizeLabel').textContent = label;
+    document.querySelectorAll('.text-size-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    applyTextSize(px, true);
+}
+function applyTextSize(px, animate) {
+    document.querySelectorAll('.msg').forEach(m => m.style.fontSize = px+'px');
+    const preview = document.getElementById('textSizePreview');
+    if(preview) preview.style.fontSize = px+'px';
+    document.getElementById('textSizeLabel').textContent =
+        px<=12?'Small':px<=15?'Medium':px<=18?'Large':'X-Large';
+}
+
+// ============================================================
+//  LANGUAGE
+// ============================================================
+function openLanguage() { openOverlay('languageOverlay'); }
+function buildLangList() {
+    const list = document.getElementById('langList');
+    list.innerHTML = LANGUAGES.map(l =>
+        `<div class="fs-row" onclick="setLang('${l.code}','${l.name}')">
+            <div style="font-size:22px;width:36px;text-align:center;">${l.flag}</div>
+            <div style="flex:1;font-size:15px;font-weight:500;color:var(--txt);">${l.name}</div>
+            ${l.code===currentLang?'<i class="fas fa-check" style="color:var(--accent);"></i>':''}
+        </div>`
+    ).join('');
+}
+function setLang(code, name) {
+    currentLang = code;
+    localStorage.setItem('lang', code);
+    document.getElementById('langLabel').textContent = name;
+    buildLangList();
+    showToast('Language set to '+name);
+    closeOverlay('languageOverlay');
+}
+
+// ============================================================
+//  PRIVACY / STORAGE / HELP
+// ============================================================
+function openPrivacy() { showToast('Privacy settings coming soon'); }
+function openStorage() {
+    if(confirm('Clear cached data? This will not delete your messages.')) {
+        showToast('Cache cleared!');
+    }
+}
+function openHelp() { showToast('Help & Support coming soon'); }
+
+// ============================================================
+//  AVATAR
+// ============================================================
+function buildAvatarGrid() {
+    const grid = document.getElementById('avatarGrid');
+    grid.innerHTML = AVATARS.map(a =>
+        `<div class="avatar-opt ${a===selectedAvatar?'selected':''}" onclick="selectAvatar('${a}')">${a}</div>`
+    ).join('');
+}
+function openAvatarPicker() { openOverlay('avatarPickerOverlay'); }
+function selectAvatar(emoji) {
+    selectedAvatar = emoji;
+    localStorage.setItem('avatar', emoji);
+    updateProfileUI();
+    buildAvatarGrid();
+    document.getElementById('editAvatarPreview').innerHTML = emoji;
+    showToast('Avatar updated!');
+}
+function uploadAvatar(e) {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const img = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        document.getElementById('profileDpWrap').innerHTML = img + '<div class="profile-dp-change"><i class="fas fa-camera"></i></div>';
+        document.getElementById('editAvatarPreview').innerHTML = img;
+        showToast('Photo uploaded!');
+    };
+    reader.readAsDataURL(file);
+}
+
+// ============================================================
+//  PROFILE UI
+// ============================================================
+function updateProfileUI() {
+    const name = currentUser.full_name || currentUser.username || 'My Profile';
+    const uname = currentUser.username || 'username';
+    document.getElementById('profileDisplayName').textContent = name;
+    document.getElementById('profileDisplayUsername').textContent = '@'+uname;
+    document.getElementById('profileLinkUser').textContent = uname;
+    const dpWrap = document.getElementById('profileDpWrap');
+    dpWrap.innerHTML = `<span id="profileDpEmoji">${selectedAvatar}</span><div class="profile-dp-change"><i class="fas fa-camera"></i></div>`;
+    dpWrap.onclick = openAvatarPicker;
+    document.getElementById('editAvatarPreview').textContent = selectedAvatar;
+    document.getElementById('editFullName').value = currentUser.full_name || '';
+    document.getElementById('editUsername').value = uname;
+    document.getElementById('editBio').value = currentUser.bio || '';
+}
+function copyProfileLink() {
+    const link = 'evamassage.app/u/'+currentUser.username;
+    navigator.clipboard.writeText(link).then(() => showToast('Profile link copied!'));
+}
+
+// ============================================================
+//  EDIT PROFILE
+// ============================================================
+function openEditProfile() { openOverlay('editProfileOverlay'); }
+function saveProfile() {
+    const fullName = document.getElementById('editFullName').value.trim();
+    const username = document.getElementById('editUsername').value.trim();
+    const bio = document.getElementById('editBio').value.trim();
+    if(!fullName || !username) { showToast('Name and username required'); return; }
+    $.post('/api/users/update_profile', {full_name:fullName, username:username, bio:bio}, function(r) {
+        if(r.success) {
+            currentUser.full_name = fullName;
+            currentUser.username = username;
+            currentUser.bio = bio;
+            updateProfileUI();
+            showToast('Profile saved!');
+            closeOverlay('editProfileOverlay');
+        } else { showToast(r.error||'Error saving'); }
+    }).fail(() => {
+        // offline demo
+        currentUser.full_name = fullName;
+        currentUser.username = username;
+        currentUser.bio = bio;
+        updateProfileUI();
+        showToast('Profile saved!');
+        closeOverlay('editProfileOverlay');
+    });
+}
+
+// ============================================================
+//  CHANGE PASSWORD
+// ============================================================
+function openChangePassword() { openOverlay('changePasswordOverlay'); }
+function changePassword() {
+    const cur = document.getElementById('curPass').value;
+    const np = document.getElementById('newPass').value;
+    const cp = document.getElementById('confirmPass').value;
+    if(!cur||!np||!cp) { showToast('Fill all fields'); return; }
+    if(np !== cp) { showToast('Passwords do not match'); return; }
+    if(np.length < 6) { showToast('Min 6 characters'); return; }
+    $.post('/api/users/change_password', {current:cur, new:np}, function(r) {
+        if(r.success) { showToast('Password changed!'); closeOverlay('changePasswordOverlay'); }
+        else { showToast(r.error||'Wrong password'); }
+    });
+}
+
+// ============================================================
+//  DELETE ACCOUNT
+// ============================================================
+function confirmDeleteAccount() { openOverlay('deleteAccountOverlay'); }
+function deleteAccount() {
+    if(document.getElementById('deleteConfirmInput').value !== 'DELETE') {
+        showToast('Type DELETE to confirm'); return;
+    }
+    $.post('/api/users/delete_account', function(r) {
+        if(r.success) window.location.href='/logout';
+    });
+}
+function confirmLogout() {
+    if(confirm('Are you sure you want to logout?')) window.location.href='/logout';
+}
+
+// ============================================================
+//  OVERLAY HELPERS
+// ============================================================
+function openOverlay(id) { document.getElementById(id).classList.add('show'); }
+function closeOverlay(id) { document.getElementById(id).classList.remove('show'); }
+
+// ============================================================
+//  CHATS
+// ============================================================
+function loadChats() {
+    $.get('/api/users/chats', function(data) {
+        const list = document.getElementById('chatList');
+        if(!data.chats || data.chats.length === 0) {
+            list.innerHTML = '<div class="empty-state"><i class="fas fa-comments" style="font-size:40px;margin-bottom:10px;display:block;"></i>No chats yet</div>';
+            return;
+        }
+        list.innerHTML = data.chats.map(c =>
+            `<div class="chat-item" onclick="openChat('${c.user_id}','${c.full_name||c.username}')">
+                <div class="avatar">${(c.full_name||c.username||'?')[0].toUpperCase()}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:15px;">${c.full_name||c.username}</div>
+                    <div style="font-size:13px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.last_message||''}</div>
+                </div>
+            </div>`
+        ).join('');
+    });
+}
+
+function searchUsers(q) {
+    if(!q) { loadChats(); return; }
+    $.get('/api/users/search?q='+encodeURIComponent(q), function(data) {
+        const list = document.getElementById('chatList');
+        if(!data.users || data.users.length === 0) {
+            list.innerHTML = '<div class="empty-state">No users found</div>'; return;
+        }
+        list.innerHTML = data.users.map(u =>
+            `<div class="chat-item" onclick="openChat('${u.user_id}','${u.full_name||u.username}')">
+                <div class="avatar">${(u.full_name||u.username||'?')[0].toUpperCase()}</div>
+                <div style="flex:1;">
+                    <div style="font-weight:600;">${u.full_name||u.username}</div>
+                    <div style="font-size:13px;color:var(--sub);">@${u.username}</div>
+                </div>
+            </div>`
+        ).join('');
+    });
+}
+
+function openChat(userId, name) {
+    currentChatId = userId;
+    currentChatName = name;
+    document.getElementById('chatName').textContent = name;
+    document.getElementById('chatArea').classList.add('active');
+    document.getElementById('messagesContainer').innerHTML = '';
+    loadMessages();
+    if(msgPollInterval) clearInterval(msgPollInterval);
+    msgPollInterval = setInterval(loadMessages, 3000);
+}
+function closeChat() {
+    document.getElementById('chatArea').classList.remove('active');
+    if(msgPollInterval) clearInterval(msgPollInterval);
+    currentChatId = null;
+}
+function loadMessages() {
+    if(!currentChatId) return;
+    $.get('/api/messages/'+currentChatId, function(data) {
+        const c = document.getElementById('messagesContainer');
+        const atBottom = c.scrollHeight - c.scrollTop <= c.clientHeight + 50;
+        c.innerHTML = (data.messages||[]).map(m =>
+            `<div class="msg ${m.sender_id===currentUser.user_id?'sent':'recv'}" style="font-size:${currentTextSizePx}px;">${m.content}</div>`
+        ).join('');
+        if(atBottom) c.scrollTop = c.scrollHeight;
+    });
+}
+function sendMessage() {
+    const inp = document.getElementById('msgInput');
+    const text = inp.value.trim();
+    if(!text || !currentChatId) return;
+    inp.value = '';
+    $.post('/api/messages/send', {to:currentChatId, content:text}, function() { loadMessages(); });
+}
+
+// ============================================================
+//  CHANNELS
+// ============================================================
+function loadChannels() {
+    $.get('/api/channels', function(data) {
+        const list = document.getElementById('channelsList');
+        if(!data.channels || data.channels.length === 0) {
+            list.innerHTML = `<div class="ch-empty-state">
+                <div class="ch-empty-icon"><i class="fas fa-hashtag"></i></div>
+                <h3>No channels yet</h3>
+                <p>Create a channel to broadcast messages to your followers</p>
+                <button class="ch-create-btn" onclick="showChannelModal()"><i class="fas fa-plus"></i> Create Channel</button>
+            </div>`; return;
+        }
+        list.innerHTML = data.channels.map(ch =>
+            `<div class="chat-item">
+                <div class="avatar" style="border-radius:12px;">#</div>
+                <div style="flex:1;"><div style="font-weight:600;">${ch.name}</div><div style="font-size:13px;color:var(--sub);">${ch.description||''}</div></div>
+            </div>`
+        ).join('');
+    });
+}
+function showChannelModal() {
+    new bootstrap.Modal(document.getElementById('channelModal')).show();
+}
+function createChannel() {
+    const name = document.getElementById('channelName').value.trim();
+    if(!name) { showToast('Channel name required'); return; }
+    $.post('/api/channels/create', {name:name, description:document.getElementById('channelDesc').value}, function(r) {
+        if(r.success) { showToast('Channel created!'); loadChannels(); bootstrap.Modal.getInstance(document.getElementById('channelModal')).hide(); }
+        else showToast(r.error||'Error');
+    });
+}
+
+// ============================================================
+//  CALL
+// ============================================================
+function startCall(type) { showToast(type+' call starting...'); }
+function rejectCall() { document.getElementById('incomingCallOverlay').classList.remove('show'); }
+function acceptCall() { document.getElementById('incomingCallOverlay').classList.remove('show'); }
+function endCall() { document.getElementById('activeCallScreen').classList.remove('show'); if(callTimer) clearInterval(callTimer); }
+function toggleMute() { showToast('Mute toggled'); }
+function toggleSpeaker() { showToast('Speaker toggled'); }
+
+// ============================================================
+//  ATTACH
+// ============================================================
+function toggleAttach() { document.getElementById('attachMenu').classList.toggle('show'); }
+function attachFile(type) { document.getElementById('attachMenu').classList.remove('show'); showToast(type+' attachment coming soon'); }
+
+// ============================================================
+//  TOAST
+// ============================================================
+function showToast(msg, duration=2500) {
+    const t = document.getElementById('toastMsg');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ============================================================
+//  LOGOUT (used in profile)
+// ============================================================
+function logout() { confirmLogout(); }
+</script>
+</body>
+</html>
