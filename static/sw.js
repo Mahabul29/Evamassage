@@ -1,10 +1,8 @@
-const CACHE_NAME = 'evamassage-v1';
+const CACHE_NAME = 'evamassage-v2';
 
+// FIX: Only cache files that definitely exist (removed /dashboard /profile /settings)
 const urlsToCache = [
     '/',
-    '/dashboard',
-    '/profile',
-    '/settings',
     '/static/css/style.css'
 ];
 
@@ -12,26 +10,34 @@ self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(function(cache) {
+                console.log('Service Worker: Caching Files');
                 return cache.addAll(urlsToCache);
             })
             .then(function() {
                 return self.skipWaiting();
+            })
+            .catch(function(err) {
+                console.log('Cache addAll failed:', err);
             })
     );
 });
 
 self.addEventListener('activate', function(event) {
     event.waitUntil(
-        caches.keys().then(function(cacheNames) {
-            return Promise.all(
-                cacheNames.map(function(cache) {
-                    if (cache !== CACHE_NAME) {
-                        console.log('Service Worker: Clearing Old Cache');
-                        return caches.delete(cache);
-                    }
-                })
-            );
-        })
+        Promise.all([
+            caches.keys().then(function(cacheNames) {
+                return Promise.all(
+                    cacheNames.map(function(cache) {
+                        if (cache !== CACHE_NAME) {
+                            console.log('Service Worker: Clearing Old Cache:', cache);
+                            return caches.delete(cache);
+                        }
+                    })
+                );
+            }),
+            // FIX: Take control of all pages immediately
+            self.clients.claim()
+        ])
     );
 });
 
@@ -40,6 +46,7 @@ self.addEventListener('fetch', function(event) {
     const dynamicRoutes = ['/', '/dashboard', '/profile', '/settings'];
 
     if (url.origin === self.location.origin && dynamicRoutes.includes(url.pathname)) {
+        // Network first for dynamic pages
         event.respondWith(
             fetch(event.request)
                 .then(function(response) {
@@ -56,6 +63,7 @@ self.addEventListener('fetch', function(event) {
                 })
         );
     } else {
+        // Cache first for static assets
         event.respondWith(
             caches.match(event.request)
                 .then(function(response) {
@@ -64,4 +72,3 @@ self.addEventListener('fetch', function(event) {
         );
     }
 });
-
