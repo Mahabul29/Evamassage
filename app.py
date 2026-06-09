@@ -27,11 +27,11 @@ def serve_static(path):
 
 @app.route('/sw.js')
 def service_worker():
-    return send_from_directory('static', 'sw.js')
+    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
 
 @app.route('/manifest.json')
 def manifest():
-    return send_from_directory('static', 'manifest.json')
+    return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
 # Page routes
 @app.route('/')
@@ -85,3 +85,4 @@ def logout():
 if __name__ == '__main__':
     print(f"🚀 Server running on port {PORT}")
     app.run(host='0.0.0.0', port=PORT, debug=False)
+    
