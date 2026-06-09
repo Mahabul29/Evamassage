@@ -1,14 +1,15 @@
-// FIX: deferredPrompt declared at top level
+// Must be declared at top level
 let deferredPrompt = null;
 
+// Capture the install prompt before browser shows it
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    console.log('Install prompt ready');
+    console.log('Install prompt captured ✓');
     showInstallPopup();
 });
 
-// Show popup after 3 seconds if not already closed
+// Show popup after 3 seconds on first visit
 setTimeout(() => {
     if (!localStorage.getItem('popupClosed')) {
         showInstallPopup();
@@ -30,6 +31,7 @@ function closeInstallPopup() {
 
 function installApp() {
     if (deferredPrompt) {
+        // Native PWA install prompt
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then((choiceResult) => {
             console.log('User choice:', choiceResult.outcome);
@@ -37,7 +39,7 @@ function installApp() {
             closeInstallPopup();
         });
     } else {
-        // Fallback for iOS / browsers without prompt support
+        // Already installed or iOS
         alert('To install: Tap the Share button ↑ then "Add to Home Screen"');
         closeInstallPopup();
     }
@@ -47,4 +49,5 @@ window.addEventListener('appinstalled', () => {
     console.log('EvaMassage installed successfully!');
     deferredPrompt = null;
     closeInstallPopup();
+    localStorage.setItem('popupClosed', 'true');
 });
