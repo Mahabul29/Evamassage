@@ -83,11 +83,20 @@ def settings():
     user.setdefault('theme', 'light')
     return render_template('settings.html', user=user)
 
-@app.route('/join/<username>')
-def join_channel_page(username):
+@app.route('/<username>')
+def join_by_username(username):
+    # Skip reserved routes
+    if username in ('dashboard', 'profile', 'settings', 'logout', 'static', 'channels', 'favicon.ico'):
+        return redirect('/')
     if 'user_id' not in session:
-        return redirect(f'/?next=/join/{username}')
+        return redirect(f'/?next=/{username}')
     return render_template('index.html', user=session, join_username=username)
+
+@app.route('/join/<channel_id>')
+def join_by_id(channel_id):
+    if 'user_id' not in session:
+        return redirect(f'/?next=/join/{channel_id}')
+    return render_template('index.html', user=session, join_channel_id=channel_id)
 
 @app.route('/logout')
 def logout():
