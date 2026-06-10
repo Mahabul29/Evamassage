@@ -24,19 +24,58 @@ def search_users():
     if len(q) < 2:
         return jsonify([])
     regex = {'$regex': q, '$options': 'i'}
+    current_uid = int(session['user_id'])  # FIX: ensure int for correct $ne comparison
     users = db['users'].find({
         '$and': [
             {'$or': [{'username': regex}, {'full_name': regex}]},
-            {'user_id': {'$ne': session['user_id']}}
+            {'$or': [
+                {'user_id': {'$ne': current_uid}},
+                {'user_id': {'$ne': str(current_uid)}}  # FIX: handle string user_id too
+            ]}
         ]
     }).limit(20)
     result = []
     for u in users:
+        uid = u.get('user_id')
+        # Skip current user regardless of int/string storage
+        if str(uid) == str(current_uid):
+            continue
         result.append({
-            'user_id': u['user_id'],
+            'user_id': uid,
             'username': u.get('username', ''),
             'full_name': u.get('full_name', u.get('username', '')),
             'avatar': u.get('avatar', 'default')
+        })
+    return jsonify(result)
+
+
+@user_bp.route('/api/channels/search')
+@login_required
+def search_channels():
+    """Search channels by name or description — used by the top search bar"""
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify([])
+    regex = {'$regex': q, '$options': 'i'}
+    current_uid = int(session['user_id'])
+    # Search all channels the user is a member of, matching the query
+    member_channel_ids = [
+        m['channel_id'] for m in db['channel_members'].find({'user_id': current_uid}, {'channel_id': 1})
+    ]
+    channels = db['channels'].find({
+        '$and': [
+            {'id': {'$in': member_channel_ids}},
+            {'$or': [{'name': regex}, {'description': regex}]}
+        ]
+    }).limit(20)
+    result = []
+    for ch in channels:
+        result.append({
+            'id': ch.get('id'),
+            'name': ch.get('name', ''),
+            'description': ch.get('description', ''),
+            'is_public': ch.get('is_public', False),
+            'member_count': ch.get('member_count', 0)
         })
     return jsonify(result)
 
@@ -240,3 +279,4 @@ def create_test_users():
         "message": f"Created {len(created)} test users: {', '.join(created)}" if created else "Test users already exist",
         "created": created
     })
+                
