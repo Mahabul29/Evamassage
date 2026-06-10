@@ -1,86 +1,168 @@
-from flask import Blueprint, request, jsonify, session, g
-from bson.objectid import ObjectId
+from flask import Blueprint, request, jsonify, session
 from functools import wraps
-from models.channeldetails import (
-    get_channel_detail,
-    search_public_channels,
-    update_channel,
-    delete_channel,
-    leave_channel,
-    apply_auto_delete,
+from bson.objectid import ObjectId
+from config import db
+from models.channel import (
+    create_channel,
+    get_user_channels,
+    send_channel_message,
+    send_channel_file,
+    get_channel_messages,
+    join_channel,
+    join_channel_by_username,
 )
+import os, uuid, base64, mimetypes
 
-channel_settings_bp = Blueprint('channel_settings', __name__)
+channel_bp = Blueprint('channel_bp', __name__)
+
+channel_members = db['channel_members']
+channels = db['channels']
 
 
 def login_required(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated(*args, **kwargs):
         if 'user_id' not in session:
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-        g.user_id = session['user_id']
         return f(*args, **kwargs)
-    return decorated_function
+    return decorated
 
 
-def _current_user_id():
-    return g.get('user_id') or session.get('user_id')
+# ── List user's channels ──────────────────────────────────────────────────────
 
-
-@channel_settings_bp.route('/channels/<channel_id>', methods=['GET'])
+@channel_bp.route('/api/channels', methods=['GET'])
 @login_required
-def api_channel_detail(channel_id):
-    user_id = _current_user_id()
-    detail, error = get_channel_detail(channel_id, user_id)
-    if error:
-        return jsonify({'success': False, 'error': error}), 404
-    return jsonify({'success': True, 'channel': detail})
+def list_channels():
+    user_id = session['user_id']
+    return jsonify(get_user_channels(user_id))
 
 
-@channel_settings_bp.route('/channels/<channel_id>', methods=['PUT', 'PATCH'])
+# ── Create channel ────────────────────────────────────────────────────────────
+
+@channel_bp.route('/api/channels', methods=['POST'])
 @login_required
-def api_update_channel(channel_id):
-    user_id = _current_user_id()
-    data = request.get_json() or {}
-    ok, msg = update_channel(channel_id, user_id, **data)
-    if not ok:
-        return jsonify({'success': False, 'error': msg}), 403
-    return jsonify({'success': True, 'message': msg})
+def api_create_channel():
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    name        = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    is_public   = bool(data.get('is_public', False))
+    username    = data.get('username', '').strip() or None
+
+    if not name or len(name) < 2:
+        return jsonify({'success': False, 'error': 'Name must be at least 2 characters'})
+
+    result = create_channel(name, user_id, description, is_public, username)
+    channel_id, msg = result[0], result[1]
+    uname = result[2] if len(result) > 2 else None
+
+    if not channel_id:
+        return jsonify({'success': False, 'error': msg})
+
+    return jsonify({'success': True, 'channel_id': channel_id, 'username': uname})
 
 
-@channel_settings_bp.route('/channels/<channel_id>', methods=['DELETE'])
+# ── Get messages ──────────────────────────────────────────────────────────────
+
+@channel_bp.route('/api/channels/<channel_id>/messages', methods=['GET'])
 @login_required
-def api_delete_channel(channel_id):
-    user_id = _current_user_id()
-    hard = request.args.get('hard', 'false').lower() == 'true'
-    ok, msg = delete_channel(channel_id, user_id, hard=hard)
-    if not ok:
-        return jsonify({'success': False, 'error': msg}), 403
-    return jsonify({'success': True, 'message': msg})
+def api_channel_messages(channel_id):
+    user_id = session['user_id']
+    msgs = get_channel_messages(channel_id, user_id)
+    return jsonify(msgs)
 
 
-@channel_settings_bp.route('/channels/<channel_id>/leave', methods=['POST'])
+# ── Send text message ─────────────────────────────────────────────────────────
+
+@channel_bp.route('/api/channels/<channel_id>/send', methods=['POST'])
 @login_required
-def api_leave_channel(channel_id):
-    user_id = _current_user_id()
-    ok, msg = leave_channel(channel_id, user_id)
+def api_send_channel_message(channel_id):
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    message = data.get('message', '').strip()
+    if not message:
+        return jsonify({'success': False, 'error': 'Empty message'})
+    ok, msg = send_channel_message(channel_id, user_id, message)
+    return jsonify({'success': ok, 'error': msg if not ok else None})
+
+
+# ── Send file ─────────────────────────────────────────────────────────────────
+
+@channel_bp.route('/api/channels/<channel_id>/send_file', methods=['POST'])
+@login_required
+def api_send_channel_file(channel_id):
+    user_id = session['user_id']
+    msg_type = request.form.get('msg_type', 'file')
+    file = request.files.get('file')
+
+    if not file:
+        return jsonify({'success': False, 'error': 'No file'})
+
+    MAX = 20 * 1024 * 1024
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX:
+        return jsonify({'success': False, 'error': 'File too large (max 20 MB)'})
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    filename = f"{uuid.uuid4().hex}{ext}"
+    upload_dir = os.path.join('static', 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+    save_path = os.path.join(upload_dir, filename)
+    file.save(save_path)
+
+    file_url  = f"/static/uploads/{filename}"
+    mime      = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    file_type = 'image' if mime.startswith('image') else 'file'
+
+    ok, msg = send_channel_file(
+        channel_id, user_id,
+        file_url, file.filename, file_type, size, msg_type
+    )
+    return jsonify({'success': ok, 'file_url': file_url if ok else None, 'error': msg if not ok else None})
+
+
+# ── Join by channel ID ────────────────────────────────────────────────────────
+
+@channel_bp.route('/api/channels/<channel_id>/join', methods=['POST'])
+@login_required
+def api_join_channel(channel_id):
+    user_id = session['user_id']
+    ok, msg = join_channel(channel_id, user_id)
     return jsonify({'success': ok, 'message': msg})
 
 
-@channel_settings_bp.route('/channels/search', methods=['GET'])
+# ── Join by public username ───────────────────────────────────────────────────
+
+@channel_bp.route('/api/channels/join_by_username', methods=['POST'])
 @login_required
-def api_search_channels():
-    query = request.args.get('q', '')
-    return jsonify(search_public_channels(query))
+def api_join_by_username():
+    user_id = session['user_id']
+    data = request.get_json(silent=True) or {}
+    username = data.get('username', '').strip()
+    if not username:
+        return jsonify({'success': False, 'error': 'Missing username'})
+    ok, msg, channel = join_channel_by_username(username, user_id)
+    if not ok:
+        return jsonify({'success': False, 'error': msg})
+    return jsonify({
+        'success': True,
+        'message': msg,
+        'channel_id': str(channel['_id']),
+        'channel_name': channel.get('name', ''),
+    })
 
 
-@channel_settings_bp.route('/channels/<channel_id>/cleanup', methods=['POST'])
+# ── Member check ──────────────────────────────────────────────────────────────
+
+@channel_bp.route('/api/channels/<channel_id>/is_member', methods=['GET'])
 @login_required
-def api_cleanup_messages(channel_id):
-    user_id = _current_user_id()
-    from channeldetails import channel_members
-    if not channel_members.find_one({'channel_id': ObjectId(channel_id), 'user_id': user_id}):
-        return jsonify({'success': False, 'error': 'Not a member'}), 403
-    deleted = apply_auto_delete(channel_id)
-    return jsonify({'success': True, 'deleted_count': deleted})
-
+def api_is_member(channel_id):
+    user_id = session['user_id']
+    try:
+        oid = ObjectId(channel_id)
+    except Exception:
+        return jsonify({'is_member': False})
+    member = channel_members.find_one({'channel_id': oid, 'user_id': user_id})
+    return jsonify({'is_member': bool(member), 'role': member.get('role') if member else None})
