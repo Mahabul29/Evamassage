@@ -61,19 +61,35 @@ def get_private_messages(user1_id, user2_id, limit=100):
 
 
 def get_chat_list(user_id):
+    # FIX: cast to int to handle session type mismatch
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        pass
+
     chat_list = chats.find({
         '$or': [{'user1_id': user_id}, {'user2_id': user_id}]
     }).sort('last_message_time', -1)
 
     result = []
     for chat in chat_list:
-        other_id = chat['user2_id'] if chat['user1_id'] == user_id else chat['user1_id']
+        u1 = chat.get('user1_id')
+        u2 = chat.get('user2_id')
+        other_id = u2 if u1 == user_id else u1
+        # FIX: find user by int or string user_id
         user = users.find_one({'user_id': other_id})
+        if not user:
+            try:
+                user = users.find_one({'user_id': int(other_id)})
+            except Exception:
+                pass
         if user:
             result.append({
                 'user_id':      other_id,
+                'username':     user.get('username', ''),
                 'full_name':    user.get('full_name', user.get('username', '')),
-                'last_message': chat.get('last_message', '')
+                'last_message': chat.get('last_message', ''),
+                'avatar':       user.get('avatar', 'default')
             })
     return result
 
