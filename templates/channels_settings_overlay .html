@@ -1,0 +1,232 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+  PASTE THIS ENTIRE BLOCK inside templates/channels.html
+  Place it BEFORE the closing </div> or before {% endblock %}
+  ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- ══ CHANNEL SETTINGS / PROFILE OVERLAY ══ -->
+<div class="overlay" id="chSettingsOverlay">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeChSettings()"><i class="fas fa-arrow-left"></i></button>
+    <div class="ov-icon" id="settingsChIcon">#</div>
+    <div class="ov-title" id="settingsChName">-</div>
+    <div class="ov-sub" id="settingsChUname">-</div>
+  </div>
+  <div class="ov-body">
+
+    <!-- Info Card -->
+    <div class="form-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:#9c27b0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;" id="settingsChAvatar">#</div>
+        <div style="flex:1;">
+          <div style="font-size:16px;font-weight:700;" id="settingsChDisplay">-</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;" id="settingsChMeta">0 members</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#666;line-height:1.5;" id="settingsChDesc">No description</div>
+      <div style="margin-top:10px;" id="settingsChPrivacy"></div>
+    </div>
+
+    <!-- Member List -->
+    <div class="form-card" id="memberListCard" style="display:none;">
+      <label class="form-label"><i class="fas fa-users" style="margin-right:6px;"></i> Members</label>
+      <div id="settingsMembers" style="max-height:200px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Settings (admin only) -->
+    <div class="form-card" id="adminSettings" style="display:none;">
+      <label class="form-label"><i class="fas fa-cog" style="margin-right:6px;"></i> Settings</label>
+
+      <label class="form-label" style="margin-top:12px;">Channel Name</label>
+      <input type="text" id="editChName" class="form-input">
+
+      <label class="form-label" style="margin-top:12px;">Description</label>
+      <textarea id="editChDesc" class="form-input textarea" style="height:60px;"></textarea>
+
+      <!-- Public toggle -->
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0;">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label"><i class="fas fa-globe" style="color:var(--accent);margin-right:6px;"></i> Public Channel</div>
+            <div class="toggle-sub">Anyone can find and join with username</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="editChPublic" onchange="onEditPublicToggle()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Username field -->
+      <div class="username-field" id="editUsernameField">
+        <label class="form-label" style="margin-top:12px;">Username</label>
+        <div class="uname-prefix">
+          <span class="uname-at">@</span>
+          <input type="text" id="editChUsername" placeholder="channelname" oninput="this.value=this.value.replace(/[^a-z0-9_]/g,'').toLowerCase()" maxlength="30">
+        </div>
+      </div>
+
+      <!-- Auto-delete -->
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0;">
+        <label class="form-label">Auto-Delete Messages</label>
+        <div class="toggle-sub" style="margin-bottom:8px;">Delete messages after set time</div>
+        <select id="editChAutoDelete" class="form-input" style="padding:10px 14px;">
+          <option value="">Disabled</option>
+          <option value="5">5 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="360">6 hours</option>
+          <option value="1440">24 hours</option>
+          <option value="10080">7 days</option>
+        </select>
+      </div>
+
+      <button class="btn-save" style="margin-top:16px;" onclick="saveChannelSettings()">
+        <i class="fas fa-save"></i> Save
+      </button>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="form-card" id="dangerZone" style="display:none;border-color:#ffcdd2;">
+      <label class="form-label" style="color:#e91e63;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i> Danger Zone</label>
+      <button onclick="deleteChannel()" style="width:100%;padding:12px;background:#e91e63;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;">
+        <i class="fas fa-trash"></i> Delete Channel
+      </button>
+    </div>
+
+    <!-- Leave button -->
+    <div class="form-card" id="leaveZone" style="display:none;">
+      <button onclick="leaveChannel()" style="width:100%;padding:12px;background:#ff9800;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">
+        <i class="fas fa-sign-out-alt"></i> Leave Channel
+      </button>
+    </div>
+
+    <button class="btn-cancel" onclick="closeChSettings()">Close</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  PASTE THIS JAVASCRIPT at the bottom of your <script> block in channels.html
+// ═══════════════════════════════════════════════════════════════════════════
+
+let currentSettingsCh = null;
+
+function openChSettings(ch) {
+  currentSettingsCh = ch;
+  document.getElementById('settingsChName').textContent = '#' + ch.name;
+  document.getElementById('settingsChDisplay').textContent = ch.name;
+  document.getElementById('settingsChUname').textContent = ch.username ? '@' + ch.username : (ch.is_public ? 'Public' : 'Private');
+  document.getElementById('settingsChMeta').textContent = (ch.member_count || 0) + ' members';
+  document.getElementById('settingsChDesc').textContent = ch.description || 'No description';
+  document.getElementById('settingsChAvatar').textContent = (ch.name || '#').charAt(0).toUpperCase();
+  document.getElementById('settingsChIcon').textContent = (ch.name || '#').charAt(0).toUpperCase();
+
+  const priv = document.getElementById('settingsChPrivacy');
+  priv.innerHTML = ch.is_public
+    ? `<span class="privacy-badge pub"><i class="fas fa-globe" style="font-size:8px;"></i> Public</span>`
+    : `<span class="privacy-badge prv"><i class="fas fa-lock" style="font-size:8px;"></i> Private</span>`;
+
+  fetch(`/api/channels/${ch.id}`)
+    .then(r => r.json())
+    .then(d => { if (d.success) renderChannelDetail(d.channel); });
+
+  document.getElementById('chSettingsOverlay').classList.add('open');
+}
+
+function renderChannelDetail(ch) {
+  const membersDiv = document.getElementById('settingsMembers');
+  membersDiv.innerHTML = '';
+  if (ch.members && ch.members.length) {
+    document.getElementById('memberListCard').style.display = 'block';
+    ch.members.forEach(m => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0;';
+      div.innerHTML = `
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;">${m.name.charAt(0).toUpperCase()}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${m.name}</div>
+          <div style="font-size:11px;color:#888;">${m.role}</div>
+        </div>`;
+      membersDiv.appendChild(div);
+    });
+  }
+
+  if (ch.can_manage) {
+    document.getElementById('adminSettings').style.display = 'block';
+    document.getElementById('dangerZone').style.display = 'block';
+    document.getElementById('leaveZone').style.display = 'none';
+    document.getElementById('editChName').value = ch.name;
+    document.getElementById('editChDesc').value = ch.description || '';
+    document.getElementById('editChPublic').checked = ch.is_public;
+    document.getElementById('editChUsername').value = ch.username || '';
+    document.getElementById('editUsernameField').classList.toggle('show', ch.is_public);
+    document.getElementById('editChAutoDelete').value = ch.auto_delete || '';
+  } else {
+    document.getElementById('adminSettings').style.display = 'none';
+    document.getElementById('dangerZone').style.display = 'none';
+    document.getElementById('leaveZone').style.display = 'block';
+  }
+}
+
+function onEditPublicToggle() {
+  document.getElementById('editUsernameField').classList.toggle('show', document.getElementById('editChPublic').checked);
+}
+
+function saveChannelSettings() {
+  const data = {
+    name: document.getElementById('editChName').value.trim(),
+    description: document.getElementById('editChDesc').value.trim(),
+    is_public: document.getElementById('editChPublic').checked,
+    username: document.getElementById('editChUsername').value.trim(),
+    auto_delete: document.getElementById('editChAutoDelete').value,
+  };
+  fetch(`/api/channels/${currentSettingsCh.id}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  })
+  .then(r => r.json())
+  .then(r => {
+    if (r.success) {
+      showToast('Saved!');
+      closeChSettings();
+      loadChannels();
+    } else {
+      showToast(r.error || 'Failed');
+    }
+  })
+  .catch(() => showToast('Network error'));
+}
+
+function deleteChannel() {
+  if (!confirm('Delete this channel?')) return;
+  fetch(`/api/channels/${currentSettingsCh.id}`, {method: 'DELETE'})
+    .then(r => r.json())
+    .then(r => {
+      if (r.success) {
+        showToast('Deleted');
+        closeChSettings();
+        loadChannels();
+      } else {
+        showToast(r.error || 'Failed');
+      }
+    });
+}
+
+function leaveChannel() {
+  if (!confirm('Leave this channel?')) return;
+  fetch(`/api/channels/${currentSettingsCh.id}/leave`, {method: 'POST'})
+    .then(r => r.json())
+    .then(r => {
+      showToast(r.message);
+      closeChSettings();
+      loadChannels();
+    });
+}
+
+function closeChSettings() {
+  document.getElementById('chSettingsOverlay').classList.remove('open');
+  currentSettingsCh = null;
+}
+</script>
