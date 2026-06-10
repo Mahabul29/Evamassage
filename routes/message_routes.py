@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from functools import wraps
-from message import send_private_message, get_private_messages, get_chat_list  # FIX: flat import
+from models.message import send_private_message, get_private_messages, get_chat_list
 
 msg_bp = Blueprint('message', __name__)
 
@@ -45,4 +45,4 @@ def get_full(user_id):
 @login_required
 def chats():
     return jsonify(get_chat_list(session['user_id']))
-    
+
