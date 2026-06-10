@@ -1,7 +1,7 @@
 from flask import Flask, render_template, session, redirect, send_from_directory
 from config import SECRET_KEY, PORT
 from routes.auth import auth_bp
-from models.user import user_bp  
+from routes.user_routes import user_bp  
 from routes.message_routes import msg_bp
 from routes.channel_routes import channel_bp
 from routes.channel_settings_routes import channel_settings_bp
@@ -106,4 +106,4 @@ def logout():
 if __name__ == '__main__':
     print(f"🚀 Server running on port {PORT}")
     app.run(host='0.0.0.0', port=PORT, debug=False)
-    
+
