@@ -4,7 +4,7 @@ from routes.auth import auth_bp
 from models.user import user_bp  
 from routes.message_routes import msg_bp
 from routes.channel_routes import channel_bp
-from routes.channel_settings_routes import channel_settings_bp   # ← ADD THIS LINE
+from routes.channel_settings_routes import channel_settings_bp
 from routes.call_routes import call_bp
 from routes.file_routes import file_bp
 from config import db
@@ -18,7 +18,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)  
 app.register_blueprint(msg_bp)
 app.register_blueprint(channel_bp)
-app.register_blueprint(channel_settings_bp)                    # ← ADD THIS LINE
+app.register_blueprint(channel_settings_bp, url_prefix='/api')  # ← FIXED: added /api prefix
 app.register_blueprint(call_bp)
 app.register_blueprint(file_bp)
 
