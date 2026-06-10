@@ -15,12 +15,20 @@ def login_required(f):
 @msg_bp.route('/api/messages/send', methods=['POST'])
 @login_required
 def send():
-    data = request.json
-    success = send_private_message(
-        session['user_id'],
-        data.get('to_id'),
-        data.get('message', '')
-    )
+    # FIX: jQuery $.post() sends form data not JSON — handle both
+    data = request.get_json(silent=True) or request.form
+    to_id = data.get('to_id')
+    message = (data.get('message') or '').strip()
+
+    if not to_id or not message:
+        return jsonify({"error": "Missing to_id or message"}), 400
+
+    try:
+        to_id = int(to_id)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid to_id"}), 400
+
+    success = send_private_message(session['user_id'], to_id, message)
     if success:
         return jsonify({"success": True})
     return jsonify({"error": "Failed to send"}), 400
@@ -42,4 +50,4 @@ def get_full(user_id):
 @login_required
 def chats():
     return jsonify(get_chat_list(session['user_id']))
-    
+
