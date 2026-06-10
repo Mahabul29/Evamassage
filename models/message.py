@@ -61,22 +61,54 @@ def get_private_messages(user1_id, user2_id, limit=100):
 
 
 def get_chat_list(user_id):
-    # FIX: cast to int to handle session type mismatch
     try:
         user_id = int(user_id)
     except (ValueError, TypeError):
         pass
 
-    chat_list = chats.find({
+    chat_list = list(chats.find({
         '$or': [{'user1_id': user_id}, {'user2_id': user_id}]
-    }).sort('last_message_time', -1)
+    }).sort('last_message_time', -1))
+
+    # FALLBACK: if chats collection empty, rebuild from messages on the fly
+    if not chat_list:
+        seen = {}
+        all_msgs = messages.find({
+            '$or': [{'from_id': user_id}, {'to_id': user_id}]
+        }).sort('created_at', -1)
+        for m in all_msgs:
+            try:
+                fid = int(m.get('from_id'))
+                tid = int(m.get('to_id'))
+            except Exception:
+                continue
+            u1, u2 = sorted([fid, tid])
+            key = (u1, u2)
+            if key not in seen:
+                seen[key] = m
+                other_id = u2 if u1 == user_id else u1
+                chat_list.append({
+                    'user1_id': u1,
+                    'user2_id': u2,
+                    'last_message': m.get('message', ''),
+                    'last_message_time': m.get('created_at')
+                })
+                # Also repair chats collection
+                chats.update_one(
+                    {'user1_id': u1, 'user2_id': u2},
+                    {'$set': {'last_message': m.get('message',''), 'last_message_time': m.get('created_at')}},
+                    upsert=True
+                )
 
     result = []
     for chat in chat_list:
         u1 = chat.get('user1_id')
         u2 = chat.get('user2_id')
+        try:
+            u1 = int(u1); u2 = int(u2)
+        except Exception:
+            pass
         other_id = u2 if u1 == user_id else u1
-        # FIX: find user by int or string user_id
         user = users.find_one({'user_id': other_id})
         if not user:
             try:
