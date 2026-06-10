@@ -21,10 +21,11 @@ def send():
     if not to_id or not message:
         return jsonify({"error": "Missing to_id or message"}), 400
     try:
-        to_id = int(to_id)
+        to_id   = int(to_id)
+        from_id = int(session['user_id'])   # FIX: always use int
     except (ValueError, TypeError):
         return jsonify({"error": "Invalid to_id"}), 400
-    success = send_private_message(session['user_id'], to_id, message)
+    success = send_private_message(from_id, to_id, message)
     if success:
         return jsonify({"success": True})
     return jsonify({"error": "Failed to send"}), 400
@@ -32,17 +33,16 @@ def send():
 @msg_bp.route('/api/messages/<int:user_id>')
 @login_required
 def get(user_id):
-    msgs = get_private_messages(session['user_id'], user_id)
+    msgs = get_private_messages(int(session['user_id']), user_id)  # FIX: cast to int
     return jsonify(msgs)
 
 @msg_bp.route('/api/messages/full/<int:user_id>')
 @login_required
 def get_full(user_id):
-    msgs = get_private_messages(session['user_id'], user_id)
+    msgs = get_private_messages(int(session['user_id']), user_id)  # FIX: cast to int
     return jsonify(msgs)
 
 @msg_bp.route('/api/chats')
 @login_required
 def chats():
-    return jsonify(get_chat_list(session['user_id']))
-
+    return jsonify(get_chat_list(int(session['user_id'])))  # FIX: cast to int
