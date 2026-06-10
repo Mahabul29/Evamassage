@@ -5,7 +5,7 @@ from config import db
 import uuid
 
 call_bp = Blueprint('call', __name__)
-calls = db['calls']  # Use MongoDB so all gunicorn workers share state
+calls = db['calls']  # MongoDB so all gunicorn workers share state
 
 def login_required(f):
     @wraps(f)
@@ -15,8 +15,12 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+# FIX: store user_id as INT (not string) so queries always match
 def sid(uid):
-    return str(uid) if uid is not None else ''
+    try:
+        return int(uid)
+    except (ValueError, TypeError):
+        return uid
 
 
 # ── Initiate ──────────────────────────────────────────────────────────────────
@@ -29,16 +33,18 @@ def initiate_call():
     if not callee_id:
         return jsonify({"error": "callee_id required"}), 400
 
+    caller_id = sid(session['user_id'])
+
     # End any previous ringing calls from this caller
     calls.update_many(
-        {'caller_id': sid(session['user_id']), 'status': 'ringing'},
+        {'caller_id': caller_id, 'status': 'ringing'},
         {'$set': {'status': 'ended'}}
     )
 
     call_id = str(uuid.uuid4())
     calls.insert_one({
         'call_id':           call_id,
-        'caller_id':         sid(session['user_id']),
+        'caller_id':         caller_id,
         'caller_name':       session.get('full_name') or session.get('username', 'Unknown'),
         'callee_id':         callee_id,
         'call_type':         call_type,
@@ -57,8 +63,9 @@ def initiate_call():
 @call_bp.route('/api/call/incoming', methods=['GET'])
 @login_required
 def incoming_calls():
+    callee_id = sid(session['user_id'])
     call = calls.find_one({
-        'callee_id': sid(session['user_id']),
+        'callee_id': callee_id,
         'status':    'ringing'
     })
     if not call:
@@ -172,4 +179,4 @@ def cleanup_calls():
         ]
     })
     return jsonify({"cleaned": result.deleted_count})
-    
+               
