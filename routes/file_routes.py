@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session
 from datetime import datetime
 from functools import wraps
 from bson.objectid import ObjectId
-from config import db  # FIX: use db directly from config
+from config import db
 import os, uuid
 
 file_bp = Blueprint('file', __name__)
@@ -39,7 +39,6 @@ def get_file_type(filename):
     return 'document'
 
 
-@file_bp.route('/api/files/send', methods=['POST'])
 @file_bp.route('/api/files/upload', methods=['POST'])
 @login_required
 def upload_file():
@@ -134,3 +133,4 @@ def upload_file():
 
     return jsonify({"success": True, "file_url": file_url, "file_name": orig_name})
 
+# FIX: removed duplicate /api/messages/full/<user_id> route — it lives in message_routes.py
