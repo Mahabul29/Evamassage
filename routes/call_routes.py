@@ -1,12 +1,21 @@
 from flask import Blueprint, request, jsonify, session
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import wraps
 from config import db
-import uuid
+from caller_id import (
+    normalize_id,
+    build_call_doc,
+    format_call_for_client,
+    get_call_history,
+    record_call_end,
+    is_user_busy,
+)
 
 call_bp = Blueprint('call', __name__)
-calls = db['calls']  # MongoDB so all gunicorn workers share state
+calls   = db['calls']
 
+
+# ── Auth decorator ─────────────────────────────────────────────────────────────
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -15,70 +24,36 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# FIX: store user_id as INT (not string) so queries always match
-def sid(uid):
-    try:
-        return int(uid)
-    except (ValueError, TypeError):
-        return uid
+
+def me():
+    """Return current user's ID as int."""
+    return normalize_id(session['user_id'])
 
 
-# ── Initiate ──────────────────────────────────────────────────────────────────
+# ── Initiate ───────────────────────────────────────────────────────────────────
 @call_bp.route('/api/call/initiate', methods=['POST'])
 @login_required
 def initiate_call():
     data      = request.get_json() or {}
-    callee_id = sid(data.get('callee_id'))
+    callee_id = data.get('callee_id')
     call_type = data.get('call_type', 'voice')
-    if not callee_id:
-        return jsonify({"error": "callee_id required"}), 400
 
-    caller_id = sid(session['user_id'])
+    call_id, err = build_call_doc(me(), callee_id, call_type)
+    if err:
+        return jsonify({"error": err}), 400
 
-    # End any previous ringing calls from this caller
-    calls.update_many(
-        {'caller_id': caller_id, 'status': 'ringing'},
-        {'$set': {'status': 'ended'}}
-    )
-
-    call_id = str(uuid.uuid4())
-    calls.insert_one({
-        'call_id':           call_id,
-        'caller_id':         caller_id,
-        'caller_name':       session.get('full_name') or session.get('username', 'Unknown'),
-        'callee_id':         callee_id,
-        'call_type':         call_type,
-        'status':            'ringing',
-        'offer':             None,
-        'answer':            None,
-        'candidates_caller': [],
-        'candidates_callee': [],
-        'created_at':        datetime.now(),
-        'expires_at':        datetime.now() + timedelta(minutes=30)
-    })
     return jsonify({"success": True, "call_id": call_id})
 
 
-# ── Incoming poll ─────────────────────────────────────────────────────────────
+# ── Incoming poll ──────────────────────────────────────────────────────────────
 @call_bp.route('/api/call/incoming', methods=['GET'])
 @login_required
 def incoming_calls():
-    callee_id = sid(session['user_id'])
-    call = calls.find_one({
-        'callee_id': callee_id,
-        'status':    'ringing'
-    })
-    if not call:
-        return jsonify(None)
-    return jsonify({
-        "call_id":     call['call_id'],
-        "caller_id":   call['caller_id'],
-        "caller_name": call.get('caller_name', 'Unknown'),
-        "call_type":   call['call_type']
-    })
+    call = calls.find_one({'callee_id': me(), 'status': 'ringing'})
+    return jsonify(format_call_for_client(call))
 
 
-# ── Status ────────────────────────────────────────────────────────────────────
+# ── Status ─────────────────────────────────────────────────────────────────────
 @call_bp.route('/api/call/<call_id>/status', methods=['GET'])
 @login_required
 def call_status(call_id):
@@ -88,27 +63,42 @@ def call_status(call_id):
     return jsonify({"status": call['status']})
 
 
-# ── Accept ────────────────────────────────────────────────────────────────────
+# ── Accept ─────────────────────────────────────────────────────────────────────
 @call_bp.route('/api/call/<call_id>/accept', methods=['POST'])
 @login_required
 def accept_call(call_id):
-    result = calls.update_one({'call_id': call_id}, {'$set': {'status': 'active'}})
+    result = calls.update_one(
+        {'call_id': call_id},
+        {'$set': {'status': 'active', 'accepted_at': datetime.now()}}
+    )
     if result.matched_count == 0:
         return jsonify({"error": "Call not found"}), 404
     return jsonify({"success": True})
 
 
-# ── End / Reject ──────────────────────────────────────────────────────────────
+# ── End / Reject ───────────────────────────────────────────────────────────────
 @call_bp.route('/api/call/<call_id>/end', methods=['POST'])
 @login_required
 def end_call(call_id):
     data   = request.get_json() or {}
     status = data.get('status', 'ended')
-    calls.update_one({'call_id': call_id}, {'$set': {'status': status}})
+
+    if status == 'ended':
+        record_call_end(call_id)
+    else:
+        calls.update_one({'call_id': call_id}, {'$set': {'status': status}})
+
     return jsonify({"success": True})
 
 
-# ── Offer ─────────────────────────────────────────────────────────────────────
+# ── Busy check ─────────────────────────────────────────────────────────────────
+@call_bp.route('/api/call/busy/<int:user_id>', methods=['GET'])
+@login_required
+def check_busy(user_id):
+    return jsonify({"busy": is_user_busy(user_id)})
+
+
+# ── Offer ──────────────────────────────────────────────────────────────────────
 @call_bp.route('/api/call/<call_id>/offer', methods=['POST'])
 @login_required
 def send_offer(call_id):
@@ -120,12 +110,10 @@ def send_offer(call_id):
 @login_required
 def get_offer(call_id):
     call = calls.find_one({'call_id': call_id})
-    if not call:
-        return jsonify({"offer": None})
-    return jsonify({"offer": call.get('offer')})
+    return jsonify({"offer": call.get('offer') if call else None})
 
 
-# ── Answer ────────────────────────────────────────────────────────────────────
+# ── Answer ─────────────────────────────────────────────────────────────────────
 @call_bp.route('/api/call/<call_id>/answer', methods=['POST'])
 @login_required
 def send_answer(call_id):
@@ -137,12 +125,10 @@ def send_answer(call_id):
 @login_required
 def get_answer(call_id):
     call = calls.find_one({'call_id': call_id})
-    if not call:
-        return jsonify({"answer": None})
-    return jsonify({"answer": call.get('answer')})
+    return jsonify({"answer": call.get('answer') if call else None})
 
 
-# ── ICE Candidates ────────────────────────────────────────────────────────────
+# ── ICE Candidates ─────────────────────────────────────────────────────────────
 @call_bp.route('/api/call/<call_id>/candidate', methods=['POST'])
 @login_required
 def send_candidate(call_id):
@@ -163,12 +149,20 @@ def get_candidates(call_id):
     if not call:
         return jsonify({"candidates": []})
     candidates = call.get(field, [])
-    # Clear after fetching — prevents duplicate ICE candidates
     calls.update_one({'call_id': call_id}, {'$set': {field: []}})
     return jsonify({"candidates": candidates})
 
 
-# ── Cleanup ───────────────────────────────────────────────────────────────────
+# ── Call history ───────────────────────────────────────────────────────────────
+@call_bp.route('/api/call/history', methods=['GET'])
+@login_required
+def call_history():
+    limit   = min(int(request.args.get('limit', 50)), 100)
+    history = get_call_history(me(), limit)
+    return jsonify(history)
+
+
+# ── Cleanup expired calls ──────────────────────────────────────────────────────
 @call_bp.route('/api/call/cleanup', methods=['POST'])
 @login_required
 def cleanup_calls():
@@ -179,4 +173,4 @@ def cleanup_calls():
         ]
     })
     return jsonify({"cleaned": result.deleted_count})
-               
+    
