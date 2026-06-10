@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, session, g
 from bson.objectid import ObjectId
 from functools import wraps
-from channeldetails import (       # FIX: flat import
+from config import db
+from models.channeldetails import (
     get_channel_detail,
     search_public_channels,
     update_channel,
@@ -11,6 +12,7 @@ from channeldetails import (       # FIX: flat import
 )
 
 channel_settings_bp = Blueprint('channel_settings', __name__)
+channel_members = db['channel_members']
 
 
 def login_required(f):
@@ -78,7 +80,6 @@ def api_search_channels():
 @login_required
 def api_cleanup_messages(channel_id):
     user_id = _current_user_id()
-    from channeldetails import channel_members
     if not channel_members.find_one({'channel_id': ObjectId(channel_id), 'user_id': user_id}):
         return jsonify({'success': False, 'error': 'Not a member'}), 403
     deleted = apply_auto_delete(channel_id)
