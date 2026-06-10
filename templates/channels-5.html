@@ -1,0 +1,1053 @@
+{% extends "base.html" %}
+{% block title %}Channels - EvaMassage{% endblock %}
+{% block content %}
+<style>
+:root{--accent:#00a884;--accent-dark:#075e54;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+body.dark{background:#111b21;color:#e9edef;}
+
+.topbar{background:var(--accent-dark);color:#fff;padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar h1{font-size:20px;font-weight:700;}
+.topbar-actions{display:flex;gap:10px;}
+.topbar-btn{background:rgba(255,255,255,.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.topbar-btn:active{background:rgba(255,255,255,.25);}
+
+.search-bar{padding:8px 12px;background:var(--accent-dark);flex-shrink:0;}
+.search-wrap{position:relative;}
+.search-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.6);font-size:14px;}
+.search-input{width:100%;padding:9px 14px 9px 36px;border-radius:20px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:14px;outline:none;}
+.search-input::placeholder{color:rgba(255,255,255,.6);}
+
+.channel-list{flex:1;overflow-y:auto;padding-bottom:70px;}
+.ch-bar{padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e0e0e0;background:#fff;flex-shrink:0;}
+body.dark .ch-bar{background:#1f2c34;border-bottom-color:#2a3942;}
+.ch-bar span{font-size:13px;color:#888;}
+.btn-new{background:var(--accent);color:#fff;border:none;padding:7px 16px;border-radius:16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.btn-new:active{background:var(--accent-dark);}
+
+.ch-item{display:flex;align-items:center;padding:13px 16px;gap:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;background:#fff;transition:background .15s;}
+body.dark .ch-item{background:#1f2c34;border-bottom-color:#2a3942;}
+.ch-item:active{background:#f0f2f5;}
+body.dark .ch-item:active{background:#2a3942;}
+.ch-avatar{width:48px;height:48px;border-radius:50%;background:#9c27b0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;flex-shrink:0;}
+.ch-info{flex:1;min-width:0;}
+.ch-name{font-size:15px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+body.dark .ch-name{color:#e9edef;}
+.ch-preview{font-size:13px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+body.dark .ch-preview{color:#8696a0;}
+.ch-role{font-size:10px;background:rgba(0,168,132,.12);color:var(--accent);padding:2px 7px;border-radius:8px;font-weight:700;text-transform:uppercase;flex-shrink:0;}
+.ch-role.admin{background:rgba(233,30,99,.12);color:#e91e63;}
+
+.empty{text-align:center;padding:60px 20px;color:#aaa;}
+.empty i{font-size:48px;margin-bottom:14px;display:block;color:#ccc;}
+.empty p{font-size:15px;font-weight:500;}
+.empty small{font-size:13px;display:block;margin-top:6px;}
+.empty-btn{margin-top:18px;background:var(--accent);color:#fff;border:none;padding:11px 26px;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;}
+
+/* CHANNEL WINDOW */
+.ch-window{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f0f2f5;z-index:400;flex-direction:column;}
+body.dark .ch-window{background:#0b141a;}
+.ch-window.open{display:flex;}
+
+.ch-header{background:var(--accent-dark);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.ch-back{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px 4px 0;}
+.ch-hav{width:38px;height:38px;border-radius:50%;background:#9c27b0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;}
+.ch-hinfo{flex:1;}
+.ch-hname{font-size:16px;font-weight:700;}
+.ch-hsub{font-size:12px;opacity:.8;}
+.ch-hactions{display:flex;gap:8px;}
+.ch-hbtn{background:rgba(255,255,255,.15);border:none;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+
+.messages-area{flex:1;overflow-y:auto;padding:12px 10px 10px;}
+.msg-bubble{max-width:78%;margin-bottom:6px;padding:8px 12px;border-radius:10px;font-size:14px;line-height:1.4;word-wrap:break-word;}
+.msg-sent{background:#dcf8c6;margin-left:auto;border-radius:10px 10px 2px 10px;}
+body.dark .msg-sent{background:#005c4b;color:#e9edef;}
+.msg-recv{background:#fff;margin-right:auto;border-radius:10px 10px 10px 2px;}
+body.dark .msg-recv{background:#1f2c34;color:#e9edef;}
+.msg-sender{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px;}
+.msg-time{font-size:10px;color:#aaa;text-align:right;margin-top:2px;}
+.msg-date{text-align:center;font-size:11px;color:#888;background:rgba(225,245,254,.8);padding:3px 12px;border-radius:10px;margin:8px auto;width:fit-content;}
+
+/* Voice bubble */
+.voice-bubble{display:flex;align-items:center;gap:10px;min-width:180px;}
+.voice-play{background:var(--accent);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.voice-wave{flex:1;height:4px;background:rgba(0,0,0,.12);border-radius:2px;position:relative;overflow:hidden;}
+.voice-wave-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .1s;}
+.voice-dur{font-size:11px;color:#888;white-space:nowrap;}
+body.dark .voice-wave{background:rgba(255,255,255,.15);}
+
+/* Image preview in bubble */
+.msg-img{max-width:200px;border-radius:8px;display:block;cursor:pointer;}
+/* Doc attachment */
+.msg-doc{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--accent);}
+.msg-doc i{font-size:20px;}
+.msg-doc-info{font-size:12px;line-height:1.3;}
+.msg-doc-name{font-weight:600;color:#111;}
+body.dark .msg-doc-name{color:#e9edef;}
+.msg-doc-size{color:#888;}
+
+/* INPUT AREA */
+.ch-input-area{background:#fff;padding:8px 12px;display:flex;align-items:flex-end;gap:8px;flex-shrink:0;border-top:1px solid #e0e0e0;}
+body.dark .ch-input-area{background:#1f2c34;border-top-color:#2a3942;}
+.ch-input{flex:1;border:none;background:#f0f2f5;border-radius:22px;padding:10px 16px;font-size:15px;outline:none;resize:none;max-height:100px;font-family:inherit;}
+body.dark .ch-input{background:#2a3942;color:#e9edef;}
+.send-btn{width:42px;height:42px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.send-btn:active{background:var(--accent-dark);}
+.attach-btn{width:36px;height:36px;border-radius:50%;background:none;border:none;color:#888;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+body.dark .attach-btn{color:#8696a0;}
+.attach-btn:active{color:var(--accent);}
+
+/* Attach menu popup */
+.attach-menu{display:none;position:fixed;bottom:74px;left:16px;background:#fff;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:500;padding:8px 0;min-width:180px;}
+body.dark .attach-menu{background:#1f2c34;}
+.attach-menu.open{display:block;}
+.attach-opt{display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;font-size:14px;color:#333;}
+body.dark .attach-opt{color:#e9edef;}
+.attach-opt:active{background:#f0f2f5;}
+body.dark .attach-opt:active{background:#2a3942;}
+.attach-opt i{width:20px;text-align:center;font-size:18px;}
+
+/* Voice record UI */
+.record-bar{display:none;flex:1;align-items:center;gap:10px;background:#fee;border-radius:22px;padding:8px 14px;}
+.record-bar.active{display:flex;}
+.record-dot{width:10px;height:10px;border-radius:50%;background:red;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.record-time{font-size:14px;font-weight:600;color:#c00;}
+.record-cancel{background:none;border:none;color:#888;font-size:14px;cursor:pointer;}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f0f2f5;z-index:500;flex-direction:column;overflow-y:auto;}
+body.dark .overlay{background:#111b21;}
+.overlay.open{display:flex;}
+.ov-header{background:var(--accent-dark);color:#fff;padding:50px 20px 28px;text-align:center;position:relative;flex-shrink:0;}
+.ov-back{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;}
+.ov-icon{font-size:40px;margin-bottom:8px;}
+.ov-title{font-size:22px;font-weight:700;}
+.ov-sub{font-size:13px;opacity:.85;margin-top:4px;}
+.ov-body{padding:16px;flex:1;}
+.form-card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #e0e0e0;}
+body.dark .form-card{background:#1f2c34;border-color:#2a3942;}
+.form-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);display:block;margin-bottom:6px;}
+.form-input{width:100%;padding:11px 14px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff;color:#111;font-size:15px;outline:none;font-family:inherit;}
+body.dark .form-input{background:#2a3942;border-color:#2a3942;color:#e9edef;}
+.form-input:focus{border-color:var(--accent);}
+.form-input.textarea{resize:none;height:80px;}
+.btn-save{background:var(--accent);color:#fff;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-save:active{background:var(--accent-dark);}
+.btn-cancel{background:none;border:1.5px solid #e0e0e0;color:#666;padding:14px;border-radius:12px;font-size:15px;cursor:pointer;width:100%;margin-top:10px;}
+body.dark .btn-cancel{border-color:#2a3942;color:#8696a0;}
+
+/* Toggle switch */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+.toggle-label{font-size:14px;color:#333;}
+body.dark .toggle-label{color:#e9edef;}
+.toggle-sub{font-size:12px;color:#888;margin-top:2px;}
+.toggle-switch{position:relative;width:46px;height:26px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:13px;transition:.3s;}
+.toggle-slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+.toggle-switch input:checked+.toggle-slider{background:var(--accent);}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px);}
+
+/* Username field */
+.uname-preview{font-size:12px;color:#888;margin-top:5px;padding-left:2px;}
+.uname-preview span{color:var(--accent);font-weight:600;}
+.username-field{display:none;margin-top:14px;}
+.username-field.show{display:block;}
+.uname-prefix{display:flex;align-items:center;border:1.5px solid #e0e0e0;border-radius:10px;overflow:hidden;background:#fff;}
+body.dark .uname-prefix{background:#2a3942;border-color:#2a3942;}
+.uname-at{padding:11px 0 11px 14px;font-size:15px;color:#888;font-weight:600;}
+.uname-prefix input{flex:1;padding:11px 14px 11px 4px;border:none;background:transparent;font-size:15px;outline:none;color:#111;}
+body.dark .uname-prefix input{color:#e9edef;}
+
+/* Privacy badge */
+.privacy-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:8px;font-weight:700;text-transform:uppercase;}
+.privacy-badge.pub{background:rgba(0,168,132,.12);color:var(--accent);}
+.privacy-badge.prv{background:rgba(100,100,100,.12);color:#666;}
+
+/* Channel item settings button */
+.ch-settings-btn{background:none;border:none;color:#aaa;font-size:16px;padding:6px;cursor:pointer;flex-shrink:0;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
+.ch-settings-btn:active{background:#f0f2f5;color:var(--accent);}
+body.dark .ch-settings-btn{color:#8696a0;}
+body.dark .ch-settings-btn:active{background:#2a3942;}
+
+/* INFO PANEL */
+.info-panel{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;z-index:600;border-radius:20px 20px 0 0;padding:20px;box-shadow:0 -4px 20px rgba(0,0,0,.15);}
+body.dark .info-panel{background:#1f2c34;}
+.info-panel.open{display:block;}
+.info-drag{width:40px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 16px;}
+.info-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:599;}
+.info-overlay.open{display:block;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:60px;background:#fff;display:flex;border-top:1px solid #e0e0e0;z-index:300;}
+body.dark .bottom-nav{background:#1f2c34;border-top-color:#2a3942;}
+.nav-btn{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:500;color:#888;cursor:pointer;padding:6px 2px;}
+.nav-btn.active{color:var(--accent);}
+.nav-btn i{font-size:21px;}
+
+/* TOAST */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+.spinner{display:flex;align-items:center;justify-content:center;padding:40px;}
+.spinner i{font-size:28px;color:var(--accent);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Image lightbox */
+.lightbox{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);z-index:9000;align-items:center;justify-content:center;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:95vw;max-height:90vh;border-radius:8px;}
+.lightbox-close{position:absolute;top:16px;right:16px;color:#fff;font-size:26px;background:none;border:none;cursor:pointer;}
+</style>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <h1><i class="fas fa-hashtag" style="font-size:16px;opacity:.8;"></i> Channels</h1>
+  <div class="topbar-actions">
+    <button class="topbar-btn" onclick="openJoinOverlay()" title="Join Channel"><i class="fas fa-search"></i></button>
+    <button class="topbar-btn" onclick="openCreateOverlay()" title="New Channel"><i class="fas fa-plus"></i></button>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div class="search-bar">
+  <div class="search-wrap">
+    <i class="fas fa-search"></i>
+    <input class="search-input" type="text" placeholder="Search channels..." id="searchInput" oninput="filterChannels()">
+  </div>
+</div>
+
+<!-- CHANNEL LIST HEADER -->
+<div class="ch-bar">
+  <span id="chCount">Your channels</span>
+  <button class="btn-new" onclick="openCreateOverlay()"><i class="fas fa-plus"></i> New Channel</button>
+</div>
+
+<!-- CHANNEL LIST -->
+<div class="channel-list" id="channelList">
+  <div class="spinner" id="loadingSpinner"><i class="fas fa-circle-notch"></i></div>
+  <div id="channelItems"></div>
+  <div class="empty" id="channelsEmpty" style="display:none;">
+    <i class="fas fa-hashtag"></i>
+    <p>No channels yet</p>
+    <small>Create a channel or join one with a username</small>
+    <button class="empty-btn" onclick="openCreateOverlay()"><i class="fas fa-plus"></i> Create Channel</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn" onclick="location.href='/dashboard'"><i class="fas fa-comment-dots"></i><span>Chats</span></button>
+  <button class="nav-btn active"><i class="fas fa-hashtag"></i><span>Channels</span></button>
+  <button class="nav-btn" onclick="location.href='/profile'"><i class="fas fa-user"></i><span>Profile</span></button>
+  <button class="nav-btn" onclick="location.href='/settings'"><i class="fas fa-cog"></i><span>Settings</span></button>
+</nav>
+
+<!-- ══ CHANNEL CHAT WINDOW ══ -->
+<div class="ch-window" id="chWindow">
+  <div class="ch-header">
+    <button class="ch-back" onclick="closeChWindow()"><i class="fas fa-arrow-left"></i></button>
+    <div class="ch-hav">#</div>
+    <div class="ch-hinfo">
+      <div class="ch-hname" id="chWinName">-</div>
+      <div class="ch-hsub" id="chWinSub">channel</div>
+    </div>
+    <div class="ch-hactions">
+      <button class="ch-hbtn" onclick="openInfoPanel()" title="Channel info"><i class="fas fa-info-circle"></i></button>
+      <button class="ch-hbtn" onclick="openChSettings(currentChInfo)" title="Channel settings"><i class="fas fa-cog"></i></button>
+    </div>
+  </div>
+  <div class="messages-area" id="chMessagesArea"></div>
+
+  <!-- Attach menu popup -->
+  <div class="attach-menu" id="attachMenu">
+    <div class="attach-opt" onclick="triggerPhotoInput()">
+      <i class="fas fa-image" style="color:#2196f3;"></i> Photo / Video
+    </div>
+    <div class="attach-opt" onclick="triggerDocInput()">
+      <i class="fas fa-file-alt" style="color:#ff9800;"></i> Document
+    </div>
+    <div class="attach-opt" onclick="startVoiceRecord()">
+      <i class="fas fa-microphone" style="color:#f44336;"></i> Voice Message
+    </div>
+  </div>
+
+  <div class="ch-input-area" id="chInputArea">
+    <button class="attach-btn" id="attachToggleBtn" onclick="toggleAttachMenu(event)"><i class="fas fa-paperclip"></i></button>
+    <textarea class="ch-input" id="chInput" placeholder="Message channel..." rows="1"
+      oninput="autoResize(this)" onkeypress="handleChKey(event)"></textarea>
+    <!-- Voice recording bar (replaces textarea while recording) -->
+    <div class="record-bar" id="recordBar">
+      <div class="record-dot"></div>
+      <span class="record-time" id="recordTime">0:00</span>
+      <button class="record-cancel" onclick="cancelVoiceRecord()"><i class="fas fa-times"></i> Cancel</button>
+    </div>
+    <button class="send-btn" id="sendBtn" onclick="sendChMessage()"><i class="fas fa-paper-plane"></i></button>
+    <button class="send-btn" id="stopRecordBtn" style="display:none;background:#f44336;" onclick="stopAndSendVoice()"><i class="fas fa-stop"></i></button>
+  </div>
+</div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="photoInput" accept="image/*,video/*" style="display:none" onchange="uploadFile(this,'photo')">
+<input type="file" id="docInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" style="display:none" onchange="uploadFile(this,'doc')">
+
+<!-- ══ CREATE CHANNEL OVERLAY ══ -->
+<div class="overlay" id="createOverlay">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeCreateOverlay()"><i class="fas fa-arrow-left"></i></button>
+    <div class="ov-icon">📢</div>
+    <div class="ov-title">New Channel</div>
+    <div class="ov-sub">Create a broadcast channel</div>
+  </div>
+  <div class="ov-body">
+    <div class="form-card">
+      <label class="form-label">Channel Name</label>
+      <input type="text" id="chNameInput" class="form-input" placeholder="e.g. Announcements" oninput="previewUsername()">
+      <div class="uname-preview" id="unamePreview">Auto username: <span>-</span></div>
+
+      <label class="form-label" style="margin-top:14px;">Description <span style="color:#aaa;font-weight:400;text-transform:none;">(optional)</span></label>
+      <textarea id="chDescInput" class="form-input textarea" placeholder="What is this channel about?"></textarea>
+
+      <!-- Privacy toggle -->
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f0f0f0;">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label"><i class="fas fa-globe" style="color:var(--accent);margin-right:6px;"></i> Public Channel</div>
+            <div class="toggle-sub">Anyone can find and join with a username</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="chPublicToggle" onchange="onPublicToggle()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Custom username (only for public) -->
+      <div class="username-field" id="usernameField">
+        <label class="form-label" style="margin-top:0;">Channel Username</label>
+        <div class="uname-prefix">
+          <span class="uname-at">@</span>
+          <input type="text" id="chUsernameInput" placeholder="channelname" oninput="sanitizeUsernameInput(this)" maxlength="30">
+        </div>
+        <div class="uname-preview" style="margin-top:4px;">Members join with this username</div>
+      </div>
+    </div>
+    <button class="btn-save" onclick="createChannel()"><i class="fas fa-plus"></i> Create Channel</button>
+    <button class="btn-cancel" onclick="closeCreateOverlay()">Cancel</button>
+  </div>
+</div>
+
+<!-- ══ JOIN CHANNEL OVERLAY ══ -->
+<div class="overlay" id="joinOverlay">
+  <div class="ov-header" style="background:#1565c0;">
+    <button class="ov-back" onclick="closeJoinOverlay()"><i class="fas fa-arrow-left"></i></button>
+    <div class="ov-icon">🔗</div>
+    <div class="ov-title">Join Channel</div>
+    <div class="ov-sub">Enter the public channel username</div>
+  </div>
+  <div class="ov-body">
+    <div class="form-card">
+      <label class="form-label">Channel Username</label>
+      <div class="uname-prefix" style="border-color:#e0e0e0;">
+        <span class="uname-at">@</span>
+        <input type="text" id="joinInput" placeholder="channelname" style="padding:11px 14px 11px 4px;border:none;background:transparent;font-size:15px;outline:none;flex:1;" oninput="this.value=this.value.replace(/[^a-z0-9_]/g,'').toLowerCase()">
+      </div>
+    </div>
+    <button class="btn-save" style="background:#1565c0;" onclick="joinChannel()"><i class="fas fa-sign-in-alt"></i> Join Channel</button>
+    <button class="btn-cancel" onclick="closeJoinOverlay()">Cancel</button>
+  </div>
+</div>
+
+<!-- ══ CHANNEL INFO PANEL ══ -->
+<div class="info-overlay" id="infoOverlay" onclick="closeInfoPanel()"></div>
+<div class="info-panel" id="infoPanel">
+  <div class="info-drag"></div>
+  <div style="text-align:center;margin-bottom:16px;">
+    <div style="width:64px;height:64px;border-radius:50%;background:#9c27b0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;margin:0 auto 10px;">#</div>
+    <div style="font-size:18px;font-weight:700;" id="infoPanelName">-</div>
+    <div style="font-size:13px;color:var(--accent);margin-top:2px;" id="infoPanelUname">-</div>
+    <div style="margin-top:6px;" id="infoPanelPrivacy"></div>
+  </div>
+  <div style="background:#f0f2f5;border-radius:12px;padding:12px 14px;margin-bottom:12px;" id="infoPanelDesc">
+    <span style="font-size:13px;color:#666;">No description</span>
+  </div>
+  <div style="display:flex;gap:10px;font-size:13px;color:#666;justify-content:center;margin-bottom:16px;">
+    <span><i class="fas fa-users" style="color:var(--accent);"></i> <span id="infoPanelCount">0</span> members</span>
+  </div>
+  <button class="btn-cancel" onclick="closeInfoPanel()">Close</button>
+</div>
+
+<!-- Image Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close"><i class="fas fa-times"></i></button>
+  <img id="lightboxImg" src="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+const ME = {{ user['user_id'] }};
+let allChannels = [];
+let currentChId = null;
+let chPollInterval = null;
+let currentChInfo = {};
+
+// Voice recording state
+let mediaRecorder = null;
+let audioChunks = [];
+let recordTimer = null;
+let recordSeconds = 0;
+
+if(localStorage.getItem('darkMode')==='true') document.body.classList.add('dark');
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadChannels();
+  // Close attach menu on outside click
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('attachMenu');
+    if (menu.classList.contains('open') && !menu.contains(e.target) && e.target.id !== 'attachToggleBtn') {
+      menu.classList.remove('open');
+    }
+  });
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── LOAD CHANNELS ──
+function loadChannels() {
+  document.getElementById('loadingSpinner').style.display = 'flex';
+  $.get('/api/channels', data => {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    allChannels = data;
+    renderChannels(data);
+  }).fail(() => {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    showToast('Failed to load channels');
+  });
+}
+
+function renderChannels(list) {
+  const items = document.getElementById('channelItems');
+  const empty = document.getElementById('channelsEmpty');
+  items.innerHTML = '';
+  document.getElementById('chCount').textContent = list.length
+    ? `${list.length} channel${list.length > 1 ? 's' : ''}`
+    : 'Your channels';
+  if (!list.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.forEach(ch => {
+    const div = document.createElement('div');
+    div.className = 'ch-item';
+    const initial = (ch.name || '#').charAt(0).toUpperCase();
+    const badge = ch.is_public
+      ? `<span class="privacy-badge pub"><i class="fas fa-globe" style="font-size:8px;"></i> Public</span>`
+      : `<span class="privacy-badge prv"><i class="fas fa-lock" style="font-size:8px;"></i> Private</span>`;
+    div.innerHTML = `
+      <div class="ch-avatar">${initial}</div>
+      <div class="ch-info ch-open-area" style="flex:1;min-width:0;cursor:pointer;">
+        <div class="ch-name">${ch.name} ${badge}</div>
+        <div class="ch-preview"><i class="fas fa-users" style="font-size:11px;"></i> ${ch.member_count || 0} members${ch.description ? ' · ' + ch.description : ''}</div>
+      </div>
+      <span class="ch-role ${ch.role === 'admin' ? 'admin' : ''}">${ch.role || 'member'}</span>
+      <button class="ch-settings-btn" title="Channel settings"><i class="fas fa-cog"></i></button>`;
+    div.querySelector('.ch-open-area').onclick = () => openChannel(ch);
+    div.querySelector('.ch-avatar').onclick = () => openChannel(ch);
+    div.querySelector('.ch-settings-btn').onclick = (e) => { e.stopPropagation(); openChSettings(ch); };
+    items.appendChild(div);
+  });
+}
+
+function filterChannels() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = allChannels.filter(ch =>
+    ch.name.toLowerCase().includes(q) ||
+    (ch.description || '').toLowerCase().includes(q) ||
+    (ch.username || '').toLowerCase().includes(q)
+  );
+  renderChannels(filtered);
+}
+
+// ── OPEN CHANNEL ──
+function openChannel(ch) {
+  currentChId = ch.id;
+  currentChInfo = ch;
+  document.getElementById('chWinName').textContent = '#' + ch.name;
+  document.getElementById('chWinSub').textContent = (ch.member_count || 0) + ' members';
+  document.getElementById('chWindow').classList.add('open');
+  document.getElementById('chMessagesArea').innerHTML = '';
+  loadChMessages();
+  clearInterval(chPollInterval);
+  chPollInterval = setInterval(loadChMessages, 3000);
+}
+
+function closeChWindow() {
+  document.getElementById('chWindow').classList.remove('open');
+  clearInterval(chPollInterval);
+  currentChId = null;
+  cancelVoiceRecord();
+  loadChannels();
+}
+
+// ── CHANNEL MESSAGES ──
+function formatSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+
+function buildMsgContent(m, sent) {
+  let content = '';
+  if (!sent && m.from_name) content += `<div class="msg-sender">${m.from_name}</div>`;
+
+  const t = m.created_at ? new Date(m.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+
+  if (m.msg_type === 'voice' && m.file_url) {
+    content += `<div class="voice-bubble">
+      <button class="voice-play" onclick="playVoice(this,'${m.file_url}')"><i class="fas fa-play"></i></button>
+      <div style="flex:1;">
+        <div class="voice-wave"><div class="voice-wave-fill" id="wave_${m.id}"></div></div>
+        <div class="voice-dur" id="dur_${m.id}">Voice message</div>
+      </div>
+    </div>`;
+  } else if (m.file_type && m.file_type.startsWith('image/') && m.file_url) {
+    content += `<img class="msg-img" src="${m.file_url}" onclick="openLightbox('${m.file_url}')" loading="lazy">`;
+  } else if (m.file_url) {
+    const icon = m.file_type && m.file_type.includes('pdf') ? 'fa-file-pdf' :
+                 m.file_type && m.file_type.includes('word') ? 'fa-file-word' :
+                 m.file_type && m.file_type.includes('sheet') ? 'fa-file-excel' : 'fa-file-alt';
+    content += `<a class="msg-doc" href="${m.file_url}" target="_blank" download>
+      <i class="fas ${icon}" style="font-size:28px;"></i>
+      <div class="msg-doc-info">
+        <div class="msg-doc-name">${m.file_name || 'File'}</div>
+        <div class="msg-doc-size">${formatSize(m.file_size)}</div>
+      </div>
+    </a>`;
+  } else {
+    content += m.message || '';
+  }
+  content += `<div class="msg-time">${t}</div>`;
+  return content;
+}
+
+function loadChMessages() {
+  if (!currentChId) return;
+  $.get(`/api/channels/${currentChId}/messages`, msgs => {
+    const area = document.getElementById('chMessagesArea');
+    const wasAtBottom = area.scrollHeight - area.clientHeight <= area.scrollTop + 60;
+    area.innerHTML = '';
+    if (!msgs.length) {
+      area.innerHTML = '<div class="empty" style="padding:40px 20px;"><i class="fas fa-hashtag"></i><p>No messages yet</p><small>Be the first to send a message!</small></div>';
+      return;
+    }
+    let lastDate = '';
+    msgs.forEach(m => {
+      const sent = m.from_id === ME;
+      const msgDate = m.created_at ? new Date(m.created_at).toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'}) : '';
+      if (msgDate && msgDate !== lastDate) {
+        lastDate = msgDate;
+        const dl = document.createElement('div');
+        dl.className = 'msg-date'; dl.textContent = msgDate;
+        area.appendChild(dl);
+      }
+      const div = document.createElement('div');
+      div.className = 'msg-bubble ' + (sent ? 'msg-sent' : 'msg-recv');
+      div.innerHTML = buildMsgContent(m, sent);
+      area.appendChild(div);
+    });
+    if (wasAtBottom) area.scrollTop = area.scrollHeight;
+  });
+}
+
+// ── SEND TEXT ──
+function sendChMessage() {
+  const input = document.getElementById('chInput');
+  const text = input.value.trim();
+  if (!text || !currentChId) return;
+  input.value = ''; input.style.height = '';
+  fetch(`/api/channels/${currentChId}/send`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({message: text})
+  })
+  .then(r => r.json())
+  .then(r => { if (r.success) loadChMessages(); else showToast(r.error || 'Failed'); })
+  .catch(() => showToast('Network error'));
+}
+
+function handleChKey(e) {
+  if (e.which === 13 && !e.shiftKey) { e.preventDefault(); sendChMessage(); }
+}
+function autoResize(el) {
+  el.style.height = ''; el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ── ATTACH MENU ──
+function toggleAttachMenu(e) {
+  e.stopPropagation();
+  document.getElementById('attachMenu').classList.toggle('open');
+}
+
+function triggerPhotoInput() {
+  document.getElementById('attachMenu').classList.remove('open');
+  document.getElementById('photoInput').click();
+}
+function triggerDocInput() {
+  document.getElementById('attachMenu').classList.remove('open');
+  document.getElementById('docInput').click();
+}
+
+function uploadFile(input, type) {
+  const file = input.files[0];
+  if (!file || !currentChId) return;
+  input.value = '';
+  const MAX = 20 * 1024 * 1024;
+  if (file.size > MAX) { showToast('File too large (max 20 MB)'); return; }
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('msg_type', type === 'photo' ? 'photo' : 'file');
+
+  showToast('Uploading…');
+  fetch(`/api/channels/${currentChId}/send_file`, { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(r => { if (r.success) loadChMessages(); else showToast(r.error || 'Upload failed'); })
+    .catch(() => showToast('Upload failed'));
+}
+
+// ── VOICE RECORDING ──
+async function startVoiceRecord() {
+  document.getElementById('attachMenu').classList.remove('open');
+  if (!navigator.mediaDevices) { showToast('Microphone not supported'); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.start(200);
+
+    // UI
+    document.getElementById('chInput').style.display = 'none';
+    document.getElementById('recordBar').classList.add('active');
+    document.getElementById('sendBtn').style.display = 'none';
+    document.getElementById('stopRecordBtn').style.display = 'flex';
+    document.getElementById('attachToggleBtn').style.display = 'none';
+
+    recordSeconds = 0;
+    document.getElementById('recordTime').textContent = '0:00';
+    recordTimer = setInterval(() => {
+      recordSeconds++;
+      const m = Math.floor(recordSeconds/60), s = recordSeconds%60;
+      document.getElementById('recordTime').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+      if (recordSeconds >= 300) stopAndSendVoice(); // max 5 min
+    }, 1000);
+  } catch(e) {
+    showToast('Microphone permission denied');
+  }
+}
+
+function cancelVoiceRecord() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    mediaRecorder.stop();
+  }
+  clearInterval(recordTimer);
+  mediaRecorder = null; audioChunks = [];
+  resetRecordUI();
+}
+
+function resetRecordUI() {
+  document.getElementById('chInput').style.display = '';
+  document.getElementById('recordBar').classList.remove('active');
+  document.getElementById('sendBtn').style.display = 'flex';
+  document.getElementById('stopRecordBtn').style.display = 'none';
+  document.getElementById('attachToggleBtn').style.display = '';
+}
+
+function stopAndSendVoice() {
+  if (!mediaRecorder) return;
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(audioChunks, {type: 'audio/webm'});
+    const reader = new FileReader();
+    reader.onload = () => {
+      const b64 = reader.result.split(',')[1];
+      fetch(`/api/channels/${currentChId}/send_file`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({data: b64, file_type: 'audio/webm', file_name: 'voice.webm', msg_type: 'voice'})
+      })
+      .then(r => r.json())
+      .then(r => { if (r.success) loadChMessages(); else showToast('Voice send failed'); })
+      .catch(() => showToast('Voice send failed'));
+    };
+    reader.readAsDataURL(blob);
+  };
+  mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  mediaRecorder.stop();
+  clearInterval(recordTimer);
+  resetRecordUI();
+}
+
+// Play voice message
+function playVoice(btn, url) {
+  const audio = new Audio(url);
+  btn.innerHTML = '<i class="fas fa-pause"></i>';
+  audio.play();
+  audio.ontimeupdate = () => {
+    const pct = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
+    const waveId = btn.parentElement.querySelector('.voice-wave-fill');
+    const durEl = btn.parentElement.querySelector('.voice-dur') || btn.parentElement.parentElement.querySelector('.voice-dur');
+    if (waveId) waveId.style.width = pct + '%';
+    if (durEl) { const r = Math.ceil(audio.duration - audio.currentTime); durEl.textContent = `0:${r.toString().padStart(2,'0')}`; }
+  };
+  audio.onended = () => { btn.innerHTML = '<i class="fas fa-play"></i>'; };
+}
+
+// ── LIGHTBOX ──
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+// ── CREATE CHANNEL ──
+function onPublicToggle() {
+  const isPublic = document.getElementById('chPublicToggle').checked;
+  document.getElementById('usernameField').classList.toggle('show', isPublic);
+  // auto-fill username from name
+  if (isPublic) previewUsername();
+}
+
+function previewUsername() {
+  const name = document.getElementById('chNameInput').value;
+  const u = name.replace(/[^a-zA-Z0-9_]/g, s => s === ' ' ? '_' : '').toLowerCase().slice(0, 30) || '-';
+  document.getElementById('unamePreview').innerHTML = `Auto username: <span>@${u}</span>`;
+  const uInput = document.getElementById('chUsernameInput');
+  if (!uInput.value) uInput.value = u === '-' ? '' : u;
+}
+
+function sanitizeUsernameInput(input) {
+  input.value = input.value.replace(/[^a-z0-9_]/g, '').toLowerCase();
+}
+
+function openCreateOverlay() { document.getElementById('createOverlay').classList.add('open'); }
+function closeCreateOverlay() {
+  document.getElementById('createOverlay').classList.remove('open');
+  document.getElementById('chNameInput').value = '';
+  document.getElementById('chDescInput').value = '';
+  document.getElementById('chUsernameInput').value = '';
+  document.getElementById('chPublicToggle').checked = false;
+  document.getElementById('usernameField').classList.remove('show');
+  document.getElementById('unamePreview').innerHTML = 'Auto username: <span>-</span>';
+}
+
+function createChannel() {
+  const name     = document.getElementById('chNameInput').value.trim();
+  const desc     = document.getElementById('chDescInput').value.trim();
+  const isPublic = document.getElementById('chPublicToggle').checked;
+  const uname    = document.getElementById('chUsernameInput').value.trim();
+
+  if (!name || name.length < 2) { showToast('Name must be at least 2 characters'); return; }
+  if (isPublic && uname && uname.length < 2) { showToast('Username must be at least 2 characters'); return; }
+
+  fetch('/api/channels', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name, description: desc, is_public: isPublic, username: uname})
+  })
+  .then(r => r.json())
+  .then(r => {
+    if (r.success) {
+      showToast(`✅ Channel created! ${r.is_public ? '@'+r.username : '(Private)'}`);
+      closeCreateOverlay(); loadChannels();
+    } else {
+      showToast(r.error || 'Failed to create channel');
+    }
+  })
+  .catch(() => showToast('Network error — try again'));
+}
+
+// ── JOIN CHANNEL ──
+function openJoinOverlay() { document.getElementById('joinOverlay').classList.add('open'); }
+function closeJoinOverlay() {
+  document.getElementById('joinOverlay').classList.remove('open');
+  document.getElementById('joinInput').value = '';
+}
+
+function joinChannel() {
+  const username = document.getElementById('joinInput').value.trim().toLowerCase();
+  if (!username) { showToast('Enter a channel username'); return; }
+  fetch(`/api/channels/join/${encodeURIComponent(username)}`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({})
+  })
+  .then(r => r.json())
+  .then(r => {
+    if (r.success) {
+      showToast(r.already_member ? 'Already a member!' : '✅ Joined ' + r.name);
+      closeJoinOverlay(); loadChannels();
+    } else { showToast(r.error || 'Channel not found'); }
+  })
+  .catch(() => showToast('Network error'));
+}
+
+// ── INFO PANEL ──
+function openInfoPanel() {
+  const ch = currentChInfo;
+  document.getElementById('infoPanelName').textContent = ch.name || '-';
+  document.getElementById('infoPanelUname').textContent = '@' + (ch.username || '');
+  document.getElementById('infoPanelCount').textContent = ch.member_count || 0;
+  const priv = document.getElementById('infoPanelPrivacy');
+  priv.innerHTML = ch.is_public
+    ? `<span class="privacy-badge pub"><i class="fas fa-globe" style="font-size:8px;"></i> Public Channel</span>`
+    : `<span class="privacy-badge prv"><i class="fas fa-lock" style="font-size:8px;"></i> Private Channel</span>`;
+  const desc = document.getElementById('infoPanelDesc');
+  desc.innerHTML = ch.description
+    ? `<span style="font-size:13px;color:#333;">${ch.description}</span>`
+    : `<span style="font-size:13px;color:#aaa;">No description</span>`;
+  document.getElementById('infoPanel').classList.add('open');
+  document.getElementById('infoOverlay').classList.add('open');
+}
+function closeInfoPanel() {
+  document.getElementById('infoPanel').classList.remove('open');
+  document.getElementById('infoOverlay').classList.remove('open');
+}
+</script>
+
+<!-- ══ CHANNEL SETTINGS / PROFILE OVERLAY ══ -->
+<div class="overlay" id="chSettingsOverlay">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeChSettings()"><i class="fas fa-arrow-left"></i></button>
+    <div class="ov-icon" id="settingsChIcon">#</div>
+    <div class="ov-title" id="settingsChName">-</div>
+    <div class="ov-sub" id="settingsChUname">-</div>
+  </div>
+  <div class="ov-body">
+
+    <!-- Info Card -->
+    <div class="form-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:#9c27b0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;" id="settingsChAvatar">#</div>
+        <div style="flex:1;">
+          <div style="font-size:16px;font-weight:700;" id="settingsChDisplay">-</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;" id="settingsChMeta">0 members</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#666;line-height:1.5;" id="settingsChDesc">No description</div>
+      <div style="margin-top:10px;" id="settingsChPrivacy"></div>
+    </div>
+
+    <!-- Member List -->
+    <div class="form-card" id="memberListCard" style="display:none;">
+      <label class="form-label"><i class="fas fa-users" style="margin-right:6px;"></i> Members</label>
+      <div id="settingsMembers" style="max-height:200px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Settings (admin only) -->
+    <div class="form-card" id="adminSettings" style="display:none;">
+      <label class="form-label"><i class="fas fa-cog" style="margin-right:6px;"></i> Settings</label>
+
+      <label class="form-label" style="margin-top:12px;">Channel Name</label>
+      <input type="text" id="editChName" class="form-input">
+
+      <label class="form-label" style="margin-top:12px;">Description</label>
+      <textarea id="editChDesc" class="form-input textarea" style="height:60px;"></textarea>
+
+      <!-- Public toggle -->
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0;">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label"><i class="fas fa-globe" style="color:var(--accent);margin-right:6px;"></i> Public Channel</div>
+            <div class="toggle-sub">Anyone can find and join with username</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="editChPublic" onchange="onEditPublicToggle()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Username field -->
+      <div class="username-field" id="editUsernameField">
+        <label class="form-label" style="margin-top:12px;">Username</label>
+        <div class="uname-prefix">
+          <span class="uname-at">@</span>
+          <input type="text" id="editChUsername" placeholder="channelname" oninput="this.value=this.value.replace(/[^a-z0-9_]/g,'').toLowerCase()" maxlength="30">
+        </div>
+      </div>
+
+      <!-- Auto-delete -->
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0;">
+        <label class="form-label">Auto-Delete Messages</label>
+        <div class="toggle-sub" style="margin-bottom:8px;">Delete messages after set time</div>
+        <select id="editChAutoDelete" class="form-input" style="padding:10px 14px;">
+          <option value="">Disabled</option>
+          <option value="5">5 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="360">6 hours</option>
+          <option value="1440">24 hours</option>
+          <option value="10080">7 days</option>
+        </select>
+      </div>
+
+      <button class="btn-save" style="margin-top:16px;" onclick="saveChannelSettings()">
+        <i class="fas fa-save"></i> Save
+      </button>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="form-card" id="dangerZone" style="display:none;border-color:#ffcdd2;">
+      <label class="form-label" style="color:#e91e63;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i> Danger Zone</label>
+      <button onclick="deleteChannel()" style="width:100%;padding:12px;background:#e91e63;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;">
+        <i class="fas fa-trash"></i> Delete Channel
+      </button>
+    </div>
+
+    <!-- Leave button -->
+    <div class="form-card" id="leaveZone" style="display:none;">
+      <button onclick="leaveChannel()" style="width:100%;padding:12px;background:#ff9800;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">
+        <i class="fas fa-sign-out-alt"></i> Leave Channel
+      </button>
+    </div>
+
+    <button class="btn-cancel" onclick="closeChSettings()">Close</button>
+  </div>
+</div>
+
+<script>
+// ══ CHANNEL SETTINGS OVERLAY JS ══
+let currentSettingsCh = null;
+
+function openChSettings(ch) {
+  currentSettingsCh = ch;
+  document.getElementById('settingsChName').textContent = '#' + ch.name;
+  document.getElementById('settingsChDisplay').textContent = ch.name;
+  document.getElementById('settingsChUname').textContent = ch.username ? '@' + ch.username : (ch.is_public ? 'Public' : 'Private');
+  document.getElementById('settingsChMeta').textContent = (ch.member_count || 0) + ' members';
+  document.getElementById('settingsChDesc').textContent = ch.description || 'No description';
+  document.getElementById('settingsChAvatar').textContent = (ch.name || '#').charAt(0).toUpperCase();
+  document.getElementById('settingsChIcon').textContent = (ch.name || '#').charAt(0).toUpperCase();
+
+  const priv = document.getElementById('settingsChPrivacy');
+  priv.innerHTML = ch.is_public
+    ? `<span class="privacy-badge pub"><i class="fas fa-globe" style="font-size:8px;"></i> Public</span>`
+    : `<span class="privacy-badge prv"><i class="fas fa-lock" style="font-size:8px;"></i> Private</span>`;
+
+  // Reset cards before fetch
+  document.getElementById('memberListCard').style.display = 'none';
+  document.getElementById('adminSettings').style.display = 'none';
+  document.getElementById('dangerZone').style.display = 'none';
+  document.getElementById('leaveZone').style.display = 'none';
+
+  fetch(`/api/channels/${ch.id}`)
+    .then(r => r.json())
+    .then(d => { if (d.success) renderChannelDetail(d.channel); });
+
+  document.getElementById('chSettingsOverlay').classList.add('open');
+}
+
+function renderChannelDetail(ch) {
+  const membersDiv = document.getElementById('settingsMembers');
+  membersDiv.innerHTML = '';
+  if (ch.members && ch.members.length) {
+    document.getElementById('memberListCard').style.display = 'block';
+    ch.members.forEach(m => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0;';
+      div.innerHTML = `
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;">${m.name.charAt(0).toUpperCase()}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${m.name}</div>
+          <div style="font-size:11px;color:#888;">${m.role}</div>
+        </div>`;
+      membersDiv.appendChild(div);
+    });
+  }
+
+  if (ch.can_manage) {
+    document.getElementById('adminSettings').style.display = 'block';
+    document.getElementById('dangerZone').style.display = 'block';
+    document.getElementById('leaveZone').style.display = 'none';
+    document.getElementById('editChName').value = ch.name;
+    document.getElementById('editChDesc').value = ch.description || '';
+    document.getElementById('editChPublic').checked = ch.is_public;
+    document.getElementById('editChUsername').value = ch.username || '';
+    document.getElementById('editUsernameField').classList.toggle('show', ch.is_public);
+    document.getElementById('editChAutoDelete').value = ch.auto_delete || '';
+  } else {
+    document.getElementById('adminSettings').style.display = 'none';
+    document.getElementById('dangerZone').style.display = 'none';
+    document.getElementById('leaveZone').style.display = 'block';
+  }
+}
+
+function onEditPublicToggle() {
+  document.getElementById('editUsernameField').classList.toggle('show', document.getElementById('editChPublic').checked);
+}
+
+function saveChannelSettings() {
+  const data = {
+    name: document.getElementById('editChName').value.trim(),
+    description: document.getElementById('editChDesc').value.trim(),
+    is_public: document.getElementById('editChPublic').checked,
+    username: document.getElementById('editChUsername').value.trim(),
+    auto_delete: document.getElementById('editChAutoDelete').value,
+  };
+  fetch(`/api/channels/${currentSettingsCh.id}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  })
+  .then(r => r.json())
+  .then(r => {
+    if (r.success) {
+      showToast('Saved!');
+      closeChSettings();
+      loadChannels();
+    } else {
+      showToast(r.error || 'Failed');
+    }
+  })
+  .catch(() => showToast('Network error'));
+}
+
+function deleteChannel() {
+  if (!confirm('Delete this channel?')) return;
+  fetch(`/api/channels/${currentSettingsCh.id}`, {method: 'DELETE'})
+    .then(r => r.json())
+    .then(r => {
+      if (r.success) {
+        showToast('Deleted');
+        closeChSettings();
+        loadChannels();
+      } else {
+        showToast(r.error || 'Failed');
+      }
+    });
+}
+
+function leaveChannel() {
+  if (!confirm('Leave this channel?')) return;
+  fetch(`/api/channels/${currentSettingsCh.id}/leave`, {method: 'POST'})
+    .then(r => r.json())
+    .then(r => {
+      showToast(r.message);
+      closeChSettings();
+      loadChannels();
+    });
+}
+
+function closeChSettings() {
+  document.getElementById('chSettingsOverlay').classList.remove('open');
+  currentSettingsCh = null;
+}
+</script>
+{% endblock %}
