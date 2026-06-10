@@ -14,7 +14,7 @@
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
 
-    <!-- manifest served from root via urls.py -->
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
 
     <meta name="theme-color" content="#00a884">
@@ -22,6 +22,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="EvaMassage">
+
+    <!-- ✅ FIXED: install.js loaded early with defer so beforeinstallprompt is never missed -->
+    <script src="/static/js/install.js" defer></script>
 </head>
 
 <body>
@@ -51,7 +54,7 @@
 
     {% block scripts %}{% endblock %}
 
-    <!-- SW registered from /sw.js (root) so scope covers full app -->
+    <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
@@ -65,8 +68,6 @@
             });
         }
     </script>
-
-    <script src="/static/js/install.js"></script>
 
 </body>
 </html>
