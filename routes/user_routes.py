@@ -90,8 +90,19 @@ def search_users():
     if not q or len(q) < 2:
         return jsonify([])
 
+    try:
+        current_uid = int(session['user_id'])
+    except (TypeError, ValueError):
+        current_uid = session['user_id']
+
     results = users.find(
-        {'username': {'$regex': q, '$options': 'i'}, 'user_id': {'$ne': session['user_id']}},
+        {
+            '$or': [
+                {'username':  {'$regex': q, '$options': 'i'}},
+                {'full_name': {'$regex': q, '$options': 'i'}},
+            ],
+            'user_id': {'$ne': current_uid}
+        },
         {'_id': 0, 'password': 0}
     ).limit(20)
 
@@ -113,4 +124,4 @@ def get_user_by_id(user_id):
     if not user:
         return jsonify({'success': False, 'error': 'Not found'}), 404
     return jsonify({'success': True, 'user': user})
-  
+
