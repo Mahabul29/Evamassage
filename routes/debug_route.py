@@ -41,4 +41,4 @@ def debug():
         "messages_count": db['messages'].count_documents({}),
     }
     return f"<pre>{json.dumps(result, indent=2)}</pre>"
-  
+    
