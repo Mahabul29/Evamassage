@@ -39,6 +39,7 @@ def get_file_type(filename):
     return 'document'
 
 
+@file_bp.route('/api/files/send', methods=['POST'])
 @file_bp.route('/api/files/upload', methods=['POST'])
 @login_required
 def upload_file():
@@ -133,30 +134,3 @@ def upload_file():
 
     return jsonify({"success": True, "file_url": file_url, "file_name": orig_name})
 
-
-@file_bp.route('/api/messages/full/<int:user_id>')
-@login_required
-def get_messages_full(user_id):
-    my_id = session['user_id']
-    msgs = db['messages'].find({
-        '$or': [
-            {'from_id': my_id,    'to_id': user_id},
-            {'from_id': user_id,  'to_id': my_id}
-        ]
-    }).sort('created_at', 1).limit(100)
-
-    result = []
-    for m in msgs:
-        created = m.get('created_at')
-        result.append({
-            'from_id':    m.get('from_id'),
-            'to_id':      m.get('to_id'),
-            'message':    m.get('message', ''),
-            'file_url':   m.get('file_url'),
-            'file_name':  m.get('file_name'),
-            'file_type':  m.get('file_type'),
-            'file_size':  m.get('file_size'),
-            'created_at': created.isoformat() if hasattr(created, 'isoformat') else str(created or '')
-        })
-    return jsonify(result)
-  
