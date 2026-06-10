@@ -51,3 +51,43 @@ def get_full(user_id):
 def chats():
     return jsonify(get_chat_list(session['user_id']))
 
+@msg_bp.route('/api/chats/repair', methods=['POST', 'GET'])
+@login_required  
+def repair_chats():
+    """Rebuild chats collection from existing messages — run once if chats are empty"""
+    from config import messages as msgs_col, chats as chats_col
+    from datetime import datetime
+    
+    # Find all messages involving any user
+    all_msgs = list(msgs_col.find({}, {'from_id': 1, 'to_id': 1, 'message': 1, 'created_at': 1}))
+    
+    repaired = 0
+    seen = set()
+    for m in sorted(all_msgs, key=lambda x: x.get('created_at') or datetime.min):
+        try:
+            fid = int(m['from_id'])
+            tid = int(m['to_id'])
+        except Exception:
+            continue
+        u1, u2 = sorted([fid, tid])
+        key = (u1, u2)
+        # Always update so last message is correct
+        chats_col.update_one(
+            {'user1_id': u1, 'user2_id': u2},
+            {'$set': {
+                'last_message':      m.get('message', ''),
+                'last_message_time': m.get('created_at', datetime.now())
+            }},
+            upsert=True
+        )
+        if key not in seen:
+            seen.add(key)
+            repaired += 1
+    
+    return jsonify({
+        'success': True,
+        'message': f'Repaired {repaired} chat(s) from {len(all_msgs)} message(s)',
+        'chats_count': repaired,
+        'messages_count': len(all_msgs)
+    })
+    
