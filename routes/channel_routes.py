@@ -77,7 +77,12 @@ def create_channel():
 @channel_bp.route('/api/channels', methods=['GET'])
 @login_required
 def get_channels():
-    members = db['channel_members'].find({'user_id': session['user_id']})
+    # FIX: cast user_id to int to match stored type
+    try:
+        uid = int(session['user_id'])
+    except (ValueError, TypeError):
+        uid = session['user_id']
+    members = db['channel_members'].find({'user_id': uid})
     result = []
     for member in members:
         channel = db['channels'].find_one({'_id': member['channel_id']})
@@ -256,10 +261,15 @@ def join_by_username(username):
     already = db['channel_members'].find_one({'channel_id': oid, 'user_id': session['user_id']})
     if already:
         return jsonify({"success": True, "already_member": True, "id": str(oid), "name": channel['name']})
+    try:
+        uid = int(session['user_id'])
+    except Exception:
+        uid = session['user_id']
     db['channel_members'].insert_one({
         'channel_id': oid,
-        'user_id':    session['user_id'],
+        'user_id':    uid,
         'role':       'member',
         'joined_at':  datetime.now()
     })
     return jsonify({"success": True, "id": str(oid), "name": channel['name']})
+        
