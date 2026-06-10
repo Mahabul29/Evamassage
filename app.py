@@ -1,13 +1,13 @@
 from flask import Flask, render_template, session, redirect, send_from_directory
 from config import SECRET_KEY, PORT, db
-from auth import auth_bp
-from user_routes import user_bp
-from message_routes import msg_bp
-from channel_routes import channel_bp
-from channel_settings_routes import channel_settings_bp
-from call_routes import call_bp
-from file_routes import file_bp
-from debug_route import debug_bp
+from routes.auth import auth_bp
+from routes.user_routes import user_bp
+from routes.message_routes import msg_bp
+from routes.channel_routes import channel_bp
+from routes.channel_settings_routes import channel_settings_bp
+from routes.call_routes import call_bp
+from routes.file_routes import file_bp
+from routes.debug_route import debug_bp
 import os
 
 app = Flask(__name__)
@@ -105,4 +105,4 @@ def logout():
 if __name__ == '__main__':
     print(f"🚀 Server running on port {PORT}")
     app.run(host='0.0.0.0', port=PORT, debug=False)
-    
+
