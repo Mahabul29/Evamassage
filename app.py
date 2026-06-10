@@ -1,12 +1,12 @@
 from flask import Flask, render_template, session, redirect, send_from_directory
 from config import SECRET_KEY, PORT, db
-from routes.auth import auth_bp
-from routes.user_routes import user_bp
-from routes.message_routes import msg_bp
-from routes.channel_routes import channel_bp
-from routes.channel_settings_routes import channel_settings_bp
-from routes.call_routes import call_bp
-from routes.file_routes import file_bp
+from auth import auth_bp
+from user_routes import user_bp
+from message_routes import msg_bp
+from channel_routes import channel_bp
+from channel_settings_routes import channel_settings_bp
+from call_routes import call_bp
+from file_routes import file_bp
 from debug_route import debug_bp
 import os
 
