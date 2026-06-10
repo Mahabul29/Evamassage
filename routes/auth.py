@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session, render_template, redirect
-from user import create_user, authenticate_user, get_user   # FIX: flat import
+from models.user import create_user, authenticate_user, get_user
 
 auth_bp = Blueprint('auth_bp', __name__)
 
@@ -53,4 +53,4 @@ def login():
 def logout():
     session.clear()
     return redirect('/')
-    
+
