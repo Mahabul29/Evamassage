@@ -25,7 +25,8 @@ def send_private_message(from_id, to_id, text):
         'file_name':  None,
         'file_type':  None,
         'file_size':  None,
-        'created_at': datetime.now()
+        'created_at': datetime.now(),
+        'read':       False          # ← NEW: track unread state
     })
 
     # Update chat list
@@ -74,6 +75,25 @@ def get_private_messages(user1_id, user2_id, limit=100):
     return result
 
 
+def get_unread_count(user_id):
+    """Count all unread messages for a given user."""
+    user_id = _coerce_id(user_id)
+    return messages.count_documents({
+        'to_id': user_id,
+        'read':  False
+    })
+
+
+def mark_messages_read(from_id, to_id):
+    """Mark all messages from from_id → to_id as read."""
+    from_id = _coerce_id(from_id)
+    to_id   = _coerce_id(to_id)
+    messages.update_many(
+        {'from_id': from_id, 'to_id': to_id, 'read': False},
+        {'$set': {'read': True}}
+    )
+
+
 def get_chat_list(user_id):
     user_id = _coerce_id(user_id)
 
@@ -114,12 +134,19 @@ def get_chat_list(user_id):
         other_id = u2 if u1 == user_id else u1
         user = users.find_one({'user_id': other_id})
         if user:
+            # Count unread from this specific user
+            unread = messages.count_documents({
+                'from_id': other_id,
+                'to_id':   user_id,
+                'read':    False
+            })
             result.append({
                 'user_id':      other_id,
                 'username':     user.get('username', ''),
                 'full_name':    user.get('full_name', user.get('username', '')),
                 'last_message': chat.get('last_message', ''),
-                'avatar':       user.get('avatar', 'default')
+                'avatar':       user.get('avatar', 'default'),
+                'unread_count': unread   # ← NEW: per-chat badge count
             })
     return result
     
