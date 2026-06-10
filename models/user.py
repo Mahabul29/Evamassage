@@ -12,12 +12,9 @@ def hash_password(password):
 def create_user(username, password, full_name):
     if len(username) < 3 or len(password) < 4:
         return None, "Invalid input"
-
     username = username.lower()
-
     if users.find_one({'username': username}):
         return None, "Username exists"
-
     user_id = secrets.randbelow(1000000000)
     user = {
         'user_id': user_id,
@@ -36,7 +33,6 @@ def create_user(username, password, full_name):
         users.insert_one(user)
     except DuplicateKeyError:
         return None, "Username exists"
-
     return user, "Success"
 
 
