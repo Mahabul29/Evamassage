@@ -1,12 +1,13 @@
 from flask import Flask, render_template, session, redirect, send_from_directory
 from config import SECRET_KEY, PORT, db
 from routes.auth import auth_bp
-from routes.user_routes import user_bp        # FIX: was "from models.user import user_bp"
+from routes.user_routes import user_bp
 from routes.message_routes import msg_bp
 from routes.channel_routes import channel_bp
 from routes.channel_settings_routes import channel_settings_bp
 from routes.call_routes import call_bp
 from routes.file_routes import file_bp
+from debug_route import debug_bp
 import os
 
 app = Flask(__name__)
@@ -20,6 +21,7 @@ app.register_blueprint(channel_bp)
 app.register_blueprint(channel_settings_bp, url_prefix='/api')
 app.register_blueprint(call_bp)
 app.register_blueprint(file_bp)
+app.register_blueprint(debug_bp)
 
 # Static files directory
 @app.route('/static/<path:path>')
@@ -41,7 +43,6 @@ def manifest():
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
 
-# Page routing views
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -84,7 +85,7 @@ def settings():
 
 @app.route('/<username>')
 def join_by_username(username):
-    if username in ('dashboard', 'profile', 'settings', 'logout', 'static', 'channels', 'favicon.ico'):
+    if username in ('dashboard', 'profile', 'settings', 'logout', 'static', 'channels', 'favicon.ico', 'debug'):
         return redirect('/')
     if 'user_id' not in session:
         return redirect(f'/?next=/{username}')
