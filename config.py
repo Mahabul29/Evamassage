@@ -17,3 +17,4 @@ chats = db['chats']
 channels = db['channels']
 channel_members = db['channel_members']
 channel_msgs = db['channel_messages']
+channel_messages = channel_msgs  # FIX: alias so all imports work
