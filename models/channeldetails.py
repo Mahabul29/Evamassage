@@ -4,10 +4,10 @@ from config import db
 import re
 
 # Collection references
-channels       = db.channels
+channels        = db.channels
 channel_members = db.channel_members
 channel_msgs    = db.channel_messages
-users          = db.users
+users           = db.users
 
 
 def _slugify(name):
@@ -19,17 +19,17 @@ def _serialize_channel(channel, member_doc=None):
     cid = str(channel['_id'])
     count = channel_members.count_documents({'channel_id': channel['_id']})
     return {
-        'id':          cid,
-        'name':        channel.get('name', ''),
-        'description': channel.get('description', ''),
-        'username':    channel.get('username') or '',
-        'is_public':   channel.get('is_public', False),
-        'is_active':   channel.get('is_active', True),
-        'created_by':  channel.get('created_by'),
-        'created_at':  channel.get('created_at').isoformat() if hasattr(channel.get('created_at'), 'isoformat') else str(channel.get('created_at', '')),
+        'id':           cid,
+        'name':         channel.get('name', ''),
+        'description':  channel.get('description', ''),
+        'username':     channel.get('username') or '',
+        'is_public':    channel.get('is_public', False),
+        'is_active':    channel.get('is_active', True),
+        'created_by':   channel.get('created_by'),
+        'created_at':   channel.get('created_at').isoformat() if hasattr(channel.get('created_at'), 'isoformat') else str(channel.get('created_at', '')),
         'member_count': count,
-        'role':        member_doc.get('role', 'member') if member_doc else 'member',
-        'auto_delete': channel.get('auto_delete', None),
+        'role':         member_doc.get('role', 'member') if member_doc else 'member',
+        'auto_delete':  channel.get('auto_delete', None),
     }
 
 
@@ -217,3 +217,4 @@ def apply_auto_delete(channel_id):
         'created_at': {'$lt': cutoff}
     })
     return result.deleted_count
+            
