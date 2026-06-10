@@ -133,6 +133,26 @@ def api_join_channel(channel_id):
     return jsonify({'success': ok, 'message': msg})
 
 
+# ── Join by public username (alias used by frontend: /api/channels/join/<username>) ──
+
+@channel_bp.route('/api/channels/join/<username>', methods=['POST'])
+@login_required
+def api_join_by_username_path(username):
+    user_id = session['user_id']
+    username = username.strip()
+    if not username:
+        return jsonify({'success': False, 'error': 'Missing username'})
+    ok, msg, channel = join_channel_by_username(username, user_id)
+    if not ok:
+        return jsonify({'success': False, 'error': msg})
+    return jsonify({
+        'success': True,
+        'message': msg,
+        'channel_id': str(channel['_id']),
+        'channel_name': channel.get('name', ''),
+    })
+
+
 # ── Join by public username ───────────────────────────────────────────────────
 
 @channel_bp.route('/api/channels/join_by_username', methods=['POST'])
@@ -166,3 +186,4 @@ def api_is_member(channel_id):
         return jsonify({'is_member': False})
     member = channel_members.find_one({'channel_id': oid, 'user_id': user_id})
     return jsonify({'is_member': bool(member), 'role': member.get('role') if member else None})
+    
