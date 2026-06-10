@@ -11,6 +11,8 @@ from models.channeldetails import (
     apply_auto_delete,
 )
 
+# url_prefix='/api' is set in app.py registration
+# Routes here become: /api/channels/...
 channel_settings_bp = Blueprint('channel_settings', __name__)
 
 
@@ -28,6 +30,7 @@ def _current_user_id():
     return g.get('user_id') or session.get('user_id')
 
 
+# GET /api/channels/<channel_id>  ← used by overlay to fetch full detail
 @channel_settings_bp.route('/channels/<channel_id>', methods=['GET'])
 @login_required
 def api_channel_detail(channel_id):
@@ -38,6 +41,7 @@ def api_channel_detail(channel_id):
     return jsonify({'success': True, 'channel': detail})
 
 
+# PUT/PATCH /api/channels/<channel_id>  ← save settings
 @channel_settings_bp.route('/channels/<channel_id>', methods=['PUT', 'PATCH'])
 @login_required
 def api_update_channel(channel_id):
@@ -49,6 +53,7 @@ def api_update_channel(channel_id):
     return jsonify({'success': True, 'message': msg})
 
 
+# DELETE /api/channels/<channel_id>  ← delete channel
 @channel_settings_bp.route('/channels/<channel_id>', methods=['DELETE'])
 @login_required
 def api_delete_channel(channel_id):
@@ -60,6 +65,7 @@ def api_delete_channel(channel_id):
     return jsonify({'success': True, 'message': msg})
 
 
+# POST /api/channels/<channel_id>/leave  ← leave channel
 @channel_settings_bp.route('/channels/<channel_id>/leave', methods=['POST'])
 @login_required
 def api_leave_channel(channel_id):
@@ -68,6 +74,7 @@ def api_leave_channel(channel_id):
     return jsonify({'success': ok, 'message': msg})
 
 
+# GET /api/channels/search?q=...  ← search public channels
 @channel_settings_bp.route('/channels/search', methods=['GET'])
 @login_required
 def api_search_channels():
@@ -75,6 +82,7 @@ def api_search_channels():
     return jsonify(search_public_channels(query))
 
 
+# POST /api/channels/<channel_id>/cleanup  ← apply auto-delete
 @channel_settings_bp.route('/channels/<channel_id>/cleanup', methods=['POST'])
 @login_required
 def api_cleanup_messages(channel_id):
